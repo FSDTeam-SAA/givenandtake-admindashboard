@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export default function SubscriberPage() {
-  const transactions = Array.from({ length: 9 }, (_, i) => ({
+  const transactions = Array.from({ length: 9 }, () => ({
     id: `TXN23007891`,
     dateTime: "2025-06-20 10:45 AM",
     planName: "Resume Highlight",

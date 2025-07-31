@@ -55,7 +55,7 @@ export default function SendEmailPage() {
               <div className="space-y-4 text-sm">
                 <p>Dear [Agent Name],</p>
                 <p>
-                  I hope this email finds you well. I'm reaching out because I believe my experience and skills would
+                  I hope this email finds you well. I&apos;m reaching out because I believe my experience and skills would
                   make me a valuable addition to your roster.
                 </p>
                 <p>Recent highlights from my career include:</p>
