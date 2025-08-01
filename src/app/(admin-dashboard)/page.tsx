@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
   // Prepare chart data - create 12 months array with data
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  const chartData = monthNames.map((month, index) => {
+  const chartData = monthNames.map((month) => {
     const monthData = stats?.charts.monthly.find(
       (m) => m.month.toLowerCase() === month.toLowerCase() || 
              m.month.toLowerCase().startsWith(month.toLowerCase())

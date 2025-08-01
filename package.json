@@ -10,10 +10,15 @@
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.83.0",
+    "@tiptap/extension-link": "^3.0.7",
+    "@tiptap/extension-text-align": "^3.0.7",
+    "@tiptap/react": "^3.0.7",
+    "@tiptap/starter-kit": "^3.0.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.534.0",
@@ -21,7 +26,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^2.15.4",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "tiptap": "^1.32.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

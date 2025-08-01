@@ -1,9 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FileText } from "lucide-react"
+import JobDetails from "./_components/JobDetails"
+
 
 interface Job {
   _id: string
@@ -39,10 +42,25 @@ const fetchJobPosts = async (): Promise<ApiResponse> => {
 }
 
 export default function JobPostsPage() {
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["job-posts"],
     queryFn: fetchJobPosts,
   })
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  }
+
+  if (selectedJobId) {
+    return <JobDetails jobId={selectedJobId} onBack={() => setSelectedJobId(null)} />
+  }
 
   if (isLoading) {
     return (
@@ -76,20 +94,9 @@ export default function JobPostsPage() {
             Job Post List
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 text-red-500">
-          Error loading job posts: {(error as Error).message}
-        </CardContent>
+        <CardContent className="p-6 text-red-500">Error loading job posts: {(error as Error).message}</CardContent>
       </Card>
     )
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })
   }
 
   return (
@@ -121,16 +128,20 @@ export default function JobPostsPage() {
                   <td className="px-6 py-4 text-base font-normal text-[#595959]">{job.companyId.cemail}</td>
                   <td className="px-6 py-4 text-base font-normal text-[#595959]">{formatDate(job.createdAt)}</td>
                   <td className="px-6 py-4 text-base font-normal text-[#595959]">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      job.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        job.status === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
                       {job.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <Button size="sm" className="bg-[#9EC7DC] hover:bg-[#9EC7DC]/90 text-white">
+                    <Button
+                      size="sm"
+                      className="bg-[#9EC7DC] hover:bg-[#9EC7DC]/90 text-white"
+                      onClick={() => setSelectedJobId(job._id)}
+                    >
                       View
                     </Button>
                   </td>
