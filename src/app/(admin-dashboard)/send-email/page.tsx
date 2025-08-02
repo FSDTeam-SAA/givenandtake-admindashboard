@@ -1,15 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-
+import { toast } from "sonner"
 import { Bold, Italic, Underline, Link, AlignLeft, AlignCenter, AlignRight, List } from "lucide-react"
 import SubscriberList from "../subscriber/_components/SubscriberList"
-
 import { EditorContent, Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
-// import Underline from "@tiptap/extension-underline"
 import LinkExtension from "@tiptap/extension-link"
 import TextAlign from "@tiptap/extension-text-align"
 
@@ -17,6 +16,7 @@ export default function SendEmailPage() {
   const [showSubscriberList, setShowSubscriberList] = useState(false)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const [subject, setSubject] = useState("")
 
   useEffect(() => {
     setIsClient(true)
@@ -24,7 +24,6 @@ export default function SendEmailPage() {
     const tiptapEditor = new Editor({
       extensions: [
         StarterKit.configure({ bulletList: { keepMarks: true } }),
-        // Underline,
         LinkExtension.configure({ openOnClick: false }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
       ],
@@ -38,11 +37,54 @@ export default function SendEmailPage() {
     }
   }, [])
 
+  // Mutation for sending email
+  const sendEmailMutation = useMutation({
+    mutationFn: async (data: { subject: string; htmlContent: string }) => {
+      // Get token from localStorage (or your preferred storage method)
+      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODg5OWQ4NDc3MWFlNjZjOGIxN2VlNGMiLCJlbWFpbCI6InNvemliYmRjYWxsaW5nMjAyNUBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTQxMDYzMzYsImV4cCI6MTc1NDE5MjczNn0.B5EYYzaSmZGk62prC1-OqjQlM9Ob4n9NHEAEU3tF9Ic"
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/newsletter/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, 
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send email")
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      toast.success("Email sent successfully!")
+      setSubject("")
+      editor?.commands.clearContent()
+    },
+    onError: (error) => {
+      toast.error(`Error sending email: ${error.message}`)
+    },
+  })
+
   const handleLink = () => {
     const url = prompt("Enter the URL")
     if (url && editor) {
       editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
     }
+  }
+
+  const handleSendEmail = () => {
+    if (!editor || !subject) {
+      toast.error("Please provide both subject and content")
+      return
+    }
+
+    sendEmailMutation.mutate({
+      subject,
+      htmlContent: editor.getHTML(),
+    })
   }
 
   if (showSubscriberList) {
@@ -71,6 +113,8 @@ export default function SendEmailPage() {
               id="subject-line"
               placeholder="Enter your subject line..."
               className="w-full border border-gray-300 rounded-md p-2 outline-none focus:ring-0"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
             />
           </div>
 
@@ -114,8 +158,13 @@ export default function SendEmailPage() {
             )}
           </div>
 
-          <Button className="bg-[#44B6CA] hover:bg-[#44B6CA]/85
-           text-white">Send Email</Button>
+          <Button 
+            className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
+            onClick={handleSendEmail}
+            disabled={sendEmailMutation.isPending}
+          >
+            {sendEmailMutation.isPending ? "Sending..." : "Send Email"}
+          </Button>
         </CardContent>
       </Card>
     </div>
