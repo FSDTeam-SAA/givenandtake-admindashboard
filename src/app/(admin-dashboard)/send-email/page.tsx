@@ -152,7 +152,7 @@ export default function SendEmailPage() {
                 </div>
 
                 <div className="">
-                  <EditorContent className="" editor={editor} />
+                  <EditorContent  className="border border-gray-300 rounded-b-md p-2 !focus:outline-none !focus:ring-0 !focus:border-gray-300" editor={editor} />
                 </div>
               </>
             )}
