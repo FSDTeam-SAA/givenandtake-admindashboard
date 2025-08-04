@@ -102,8 +102,8 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
     // Here you would handle the form submission
     // You can access the editor content with editor.getHTML()
     // and the selected image with selectedImage
-    console.log("Blog content:", editor.getHTML())
-    console.log("Selected image:", selectedImage)
+    // console.log("Blog content:", editor.getHTML())
+    // console.log("Selected image:", selectedImage)
   }
 
   return (

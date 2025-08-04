@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import TranstackQuireProvider from "@/components/provider/QueryClientProvider ";
 import { Toaster } from "sonner";
+import AuthSessionProvider from "@/components/provider/SessionProvider ";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +31,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TranstackQuireProvider>
+          <AuthSessionProvider>      
           {children}
+          </AuthSessionProvider>
           <Toaster />
         </TranstackQuireProvider>
       </body>

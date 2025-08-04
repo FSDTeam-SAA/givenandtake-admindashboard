@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+
 interface ApiResponse {
   success: boolean
   message: string
@@ -42,6 +43,8 @@ const fetchDashboardStats = async (): Promise<ApiResponse> => {
 }
 
 export default function DashboardPage() {
+ 
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: fetchDashboardStats,
