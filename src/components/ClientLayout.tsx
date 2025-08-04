@@ -23,6 +23,7 @@ const menuItems = [
   { title: "Job Post List", icon: List, href: "/job-posts" },
   { title: "Subscriber", icon: Users, href: "/subscriber" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
+  { title: "Blog", icon: CreditCard, href: "/blog" },
   { title: "Send Email", icon: Mail, href: "/send-email" },
 ]
 
