@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from "react"
@@ -232,6 +233,27 @@ export default function JobCategoriesPage() {
     editCategoryMutation.mutate({ id: editCategory._id, formData })
   }
 
+  // Skeleton Loader Component
+  const SkeletonRow = () => (
+    <tr className="bg-white">
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex gap-2">
+          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </td>
+    </tr>
+  )
+
   if (showAddForm) {
     return (
       <Card className="border-none shadow-none">
@@ -351,11 +373,10 @@ export default function JobCategoriesPage() {
               </thead>
               <tbody className="divide-y divide-[#BFBFBF]">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center">
-                      Loading...
-                    </td>
-                  </tr>
+                  // Display 3 skeleton rows to mimic loading state
+                  Array(3).fill(0).map((_, index) => (
+                    <SkeletonRow key={index} />
+                  ))
                 ) : isError ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-red-500">
