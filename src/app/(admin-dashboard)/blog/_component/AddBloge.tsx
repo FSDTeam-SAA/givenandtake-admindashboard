@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -17,23 +18,81 @@ import {
 import { Button } from "@/components/ui/button"
 import { CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+
 import { EditorContent, Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import LinkExtension from "@tiptap/extension-link"
 import TextAlign from "@tiptap/extension-text-align"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { Label } from "@/components/ui/label"
+
+interface BlogPost {
+  _id: string
+  title: string
+  description: string
+  image: string | null
+  userId: string
+  createdAt: string
+  updatedAt: string
+  __v: number
+  tags?: string[]
+}
 
 interface AddBlogFormProps {
   onBack: () => void
+  editBlog?: BlogPost | null
+  onUpdate?: (blog: BlogPost) => void
 }
 
-export default function AddBlogForm({ onBack }: AddBlogFormProps) {
+export default function AddBlogForm({ onBack, editBlog, onUpdate }: AddBlogFormProps) {
   const [editor, setEditor] = useState<Editor | null>(null)
   const [isClient, setIsClient] = useState(false)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(editBlog?.image || null)
+  const [title, setTitle] = useState(editBlog?.title || "")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const session = useSession()
+  const userId = session.data?.user?._id
+  const token = session.data?.user?.accessToken
+
+  const mutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const url = editBlog
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/blogs/${editBlog._id}`
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/blogs`
+      const method = editBlog ? "PATCH" : "POST"
+
+      const response = await fetch(url, {
+        method,
+        body: formData,
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to ${editBlog ? "update" : "post"} blog`)
+      }
+      return response.json()
+    },
+    onSuccess: (data) => {
+      toast.success(`Blog ${editBlog ? "updated" : "added"} successfully!`)
+      if (data.data && onUpdate) {
+        onUpdate(data.data)
+      } else {
+        setTitle("")
+        editor?.commands.clearContent()
+        handleRemoveImage()
+        onBack()
+      }
+    },
+    onError: (error) => {
+      toast.error(`Failed to ${editBlog ? "update" : "post"} blog. Please try again.`)
+     
+    },
+  })
 
   useEffect(() => {
     setIsClient(true)
@@ -44,19 +103,18 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
         LinkExtension.configure({ openOnClick: false }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
       ],
-      content: "",
+      content: editBlog?.description || "",
     })
 
     setEditor(tiptapEditor)
 
     return () => {
       tiptapEditor?.destroy()
-      // Clean up image preview URL
-      if (imagePreview) {
+      if (imagePreview && !editBlog?.image) {
         URL.revokeObjectURL(imagePreview)
       }
     }
-  }, [imagePreview])
+  }, [editBlog,imagePreview])
 
   const handleLink = () => {
     const url = prompt("Enter the URL")
@@ -68,13 +126,11 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Check file size (10MB = 10 * 1024 * 1024 bytes)
       if (file.size > 10 * 1024 * 1024) {
-        alert("File size exceeds 10MB limit")
+        toast.error("File size exceeds 10MB limit")
         return
       }
-      // Clean up previous image preview
-      if (imagePreview) {
+      if (imagePreview && !editBlog?.image) {
         URL.revokeObjectURL(imagePreview)
       }
       setSelectedImage(file)
@@ -83,7 +139,7 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
   }
 
   const handleRemoveImage = () => {
-    if (imagePreview) {
+    if (imagePreview && !editBlog?.image) {
       URL.revokeObjectURL(imagePreview)
     }
     setSelectedImage(null)
@@ -95,19 +151,35 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
 
   const handleSubmit = () => {
     if (!editor) {
-      console.error("Editor not initialized")
+      toast.error("Editor not initialized")
       return
     }
-    
-    // Here you would handle the form submission
-    // You can access the editor content with editor.getHTML()
-    // and the selected image with selectedImage
-    // console.log("Blog content:", editor.getHTML())
-    // console.log("Selected image:", selectedImage)
+
+    if (!title.trim()) {
+      toast.error("Please enter a blog title")
+      return
+    }
+
+    if (!editor.getHTML() || editor.getHTML() === "<p></p>") {
+      toast.error("Please enter blog content")
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("title", title)
+    formData.append("description", editor.getHTML())
+    if (selectedImage) {
+      formData.append("image", selectedImage)
+    }
+    if (userId) {
+      formData.append("userId", userId)
+    }
+
+    mutation.mutate(formData)
   }
 
   return (
-    <div className=" ">
+    <div>
       <header className="bg-[#DFFAFF] rounded-[8px] py-4 px-6 md:px-8 lg:px-12 flex items-center">
         <Button
           variant="ghost"
@@ -118,7 +190,9 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
           <ChevronLeft className="!w-[32px] !h-[32px]" />
           <span className="sr-only">Back</span>
         </Button>
-        <CardTitle className="text-[40px] font-bold text-[#44B6CA] py-[25px] ml-2">Add Blog</CardTitle>
+        <CardTitle className="text-[40px] font-bold text-[#44B6CA] py-[25px] ml-2">
+          {editBlog ? "Edit Blog" : "Add Blog"}
+        </CardTitle>
       </header>
 
       <main className="container mx-auto mt-8">
@@ -131,6 +205,8 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
               id="blog-title"
               placeholder="Input name....."
               className="border-[#DFFAFF] bg-white text-[#595959] placeholder:text-[#595959] focus:ring-[#44B6CA] focus:border-[#44B6CA]"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
           </div>
 
@@ -178,7 +254,7 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
                       <LinkIcon className="w-4 h-4" />
                       <span className="sr-only">Link</span>
                     </Button>
-                    <div className="w-px h-6 bg-[#DFFAFF] mx-2" /> {/* Separator */}
+                    <div className="w-px h-6 bg-[#DFFAFF] mx-2" />
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -258,7 +334,7 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {selectedImage ? "Change Image" : "Upload Image"}
+                    {selectedImage || editBlog?.image ? "Change Image" : "Upload Image"}
                   </Button>
                 </>
               )}
@@ -276,8 +352,9 @@ export default function AddBlogForm({ onBack }: AddBlogFormProps) {
           <Button 
             className="bg-[#9EC7DC] text-white hover:bg-[#9EC7DC]/90 w-fit px-8 py-2 mt-4"
             onClick={handleSubmit}
+            disabled={mutation.isPending}
           >
-            Submit
+            {mutation.isPending ? (editBlog ? "Updating..." : "Submitting...") : (editBlog ? "Update" : "Submit")}
           </Button>
         </div>
       </main>

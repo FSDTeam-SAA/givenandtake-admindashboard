@@ -1,7 +1,7 @@
 // app/layout.tsx
 
 import type { ReactNode } from "react";
-import "../globals.css"; // ✅ Relative path to global CSS
+import "../globals.css"; 
 import ClientLayout from "@/components/ClientLayout";
 
 

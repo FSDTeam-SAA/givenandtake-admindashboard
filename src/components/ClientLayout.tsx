@@ -36,7 +36,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const session=useSession();
   const token=session.data?.user?.accessToken
-  console.log(token)
+
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
