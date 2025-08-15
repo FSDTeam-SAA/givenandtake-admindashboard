@@ -103,13 +103,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem className="mt-8">
+              <SidebarMenuItem className="mt-[300px]">
                 <SidebarMenuButton 
                   className="w-full justify-start text-white hover:bg-[#42A3B2] h-[50px] cursor-pointer"
                   onClick={() => setShowLogoutModal(true)}
                 >
                   <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
+                  <span className="text-baase font-medium">Logout</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
