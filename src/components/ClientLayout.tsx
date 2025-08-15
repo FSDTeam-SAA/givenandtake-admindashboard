@@ -19,6 +19,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
+import image from "@/../public/assets/logo1.png"
 
 const menuItems = [
   { title: "Dashboard", icon: BarChart3, href: "/" },
@@ -37,7 +38,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const session=useSession();
   const token=session.data?.user?.accessToken
-  console.log(token)
+
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
@@ -80,11 +81,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <Sidebar className="bg-[#44B6CA] text-white border-r-0">
           <SidebarHeader className="p-4">
             <Image
-              src="/logo.png"
+              src={image}
               alt="Logo"
               width={100}
               height={100}
-              className="w-12 h-12"
+              className="w-[114px] h-[39px] cursor-pointer"
             />
           </SidebarHeader>
           <SidebarContent>
@@ -104,7 +105,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               ))}
               <SidebarMenuItem className="mt-8">
                 <SidebarMenuButton 
-                  className="w-full justify-start text-white hover:bg-[#42A3B2] h-[50px]"
+                  className="w-full justify-start text-white hover:bg-[#42A3B2] h-[50px] cursor-pointer"
                   onClick={() => setShowLogoutModal(true)}
                 >
                   <LogOut className="h-4 w-4" />

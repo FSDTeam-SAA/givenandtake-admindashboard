@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -71,6 +72,46 @@ const downloadReceipt = (payment: ReceiptData): void => {
   doc.save(`receipt_${payment.transactionId}.pdf`)
 }
 
+// Skeleton Loader Component
+function SkeletonTable() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+          <div className="h-9 w-48 bg-gray-200 animate-pulse rounded" />
+        </div>
+      </div>
+      <Card className="border-none shadow-none">
+        <CardContent className="p-0">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                {Array(8).fill(0).map((_, index) => (
+                  <th key={index} className="px-6 py-3">
+                    <div className="h-4 w-20 bg-gray-200 animate-pulse rounded" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#B9B9B9]">
+              {Array(5).fill(0).map((_, rowIndex) => (
+                <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  {Array(8).fill(0).map((_, cellIndex) => (
+                    <td key={cellIndex} className="px-6 py-4">
+                      <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export default function PaymentDetailsPage() {
   const { data, isLoading, error } = useQuery<ApiResponse, Error>({
     queryKey: ["payments"],
@@ -79,7 +120,7 @@ export default function PaymentDetailsPage() {
 
   const payments = data?.data || []
 
-  if (isLoading) return <div>Loading...</div>
+  if (isLoading) return <SkeletonTable />
   if (error) return <div>Error: {error.message}</div>
 
   return (
@@ -108,10 +149,10 @@ export default function PaymentDetailsPage() {
             <tbody className="divide-y divide-[#B9B9B9]">
               {payments.map((payment, index) => (
                 <tr key={payment._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment.transactionId}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment.userId.name}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment.userId.email}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">${payment.amount}</td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.transactionId}</td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.userId?.name}</td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.userId?.email}</td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">${payment?.amount}</td>
                   <td className="px-6 py-4 text-sm text-[#000000]">
                     {format(new Date(payment.createdAt), "yyyy-MM-dd")}
                   </td>

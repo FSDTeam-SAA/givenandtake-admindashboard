@@ -12,6 +12,7 @@ import JobDetails from "./_components/JobDetails"
 interface Job {
   _id: string
   title: string
+  jobApprove?: string
   companyId?: {
     cname?: string
     cemail?: string
@@ -235,10 +236,10 @@ export default function JobPostsPage() {
                   <td className="px-6 py-4 text-base font-normal text-gray-600">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
-                        job.status === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                        job.jobApprove === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
-                      {job.status || "Unknown"}
+                      {job.jobApprove || "Unknown"}
                     </span>
                   </td>
                   <td className="px-6 py-4">

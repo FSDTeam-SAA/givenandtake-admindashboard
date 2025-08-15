@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from "react"
@@ -16,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useSession } from "next-auth/react"
 
 interface JobCategory {
   _id: string
@@ -40,7 +42,9 @@ export default function JobCategoriesPage() {
   const [editImageFile, setEditImageFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODg5OWQ4NDc3MWFlNjZjOGIxN2VlNGMiLCJlbWFpbCI6InNvemliYmRjYWxsaW5nMjAyNUBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTQxMDYzMzYsImV4cCI6MTc1NDE5MjczNn0.B5EYYzaSmZGk62prC1-OqjQlM9Ob4n9NHEAEU3tF9Ic"
+  const session=useSession()
+  const token= session.data?.user?.accessToken
+ 
 
   // Fetch categories
   const { data: categories, isLoading, isError, refetch } = useQuery<JobCategory[]>({
@@ -232,6 +236,27 @@ export default function JobCategoriesPage() {
     editCategoryMutation.mutate({ id: editCategory._id, formData })
   }
 
+  // Skeleton Loader Component
+  const SkeletonRow = () => (
+    <tr className="bg-white">
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex gap-2">
+          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </td>
+    </tr>
+  )
+
   if (showAddForm) {
     return (
       <Card className="border-none shadow-none">
@@ -310,13 +335,13 @@ export default function JobCategoriesPage() {
             </div>
           </div>
           <div className="flex justify-center pt-4">
-            <Button
+            <button
               onClick={handleAddCategory}
-              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white px-8 py-2"
+              className="bg-[#8DB1C3] hover:bg-[#8DB1C3] text-white px-8 py-2 !cursor-pointer rounded-[8px]"
               disabled={!categoryName || !selectedImage || addCategoryMutation.isPending}
             >
               {addCategoryMutation.isPending ? "Adding..." : "Add Category"}
-            </Button>
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -351,11 +376,10 @@ export default function JobCategoriesPage() {
               </thead>
               <tbody className="divide-y divide-[#BFBFBF]">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center">
-                      Loading...
-                    </td>
-                  </tr>
+                  // Display 3 skeleton rows to mimic loading state
+                  Array(3).fill(0).map((_, index) => (
+                    <SkeletonRow key={index} />
+                  ))
                 ) : isError ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-red-500">

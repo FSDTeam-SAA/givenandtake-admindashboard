@@ -1,9 +1,11 @@
+
 'use client';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface User {
   _id: string;
@@ -51,11 +53,13 @@ const fetchElevatorPitches = async (type: string, token: string): Promise<ApiRes
 
 export default function ElevatorPitchPage() {
   const [activeType, setActiveType] = useState<"candidate" | "recruiter">("candidate");
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODcyMzc2ZDZhOWU3MjgwNTMxZDFhMTEiLCJlbWFpbCI6InppaGFkdWxpc2xhbUBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTQyNzc4NjAsImV4cCI6MTc1NDM2NDI2MH0.8-d3_nHZgTyPJ0rV1VgjekuSbrxat0lH6ik0-f2S-6w";
+  const { data: session } = useSession();
+  const token = session?.user?.accessToken || '';
 
   const { data, isLoading, error } = useQuery<ApiResponse>({
     queryKey: ["elevatorPitches", activeType],
     queryFn: () => fetchElevatorPitches(activeType, token),
+    enabled: !!token, // Only fetch when token is available
   });
 
   const formatDate = (dateString: string): string => {
@@ -65,6 +69,26 @@ export default function ElevatorPitchPage() {
       year: "numeric",
     });
   };
+
+  const SkeletonRow = () => (
+    <tr className="bg-white">
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-8 bg-gray-200 rounded w-[100px] animate-pulse"></div>
+      </td>
+    </tr>
+  );
 
   return (
     <Card className="border-none shadow-none">
@@ -95,7 +119,22 @@ export default function ElevatorPitchPage() {
         </div>
         <div>
           {isLoading ? (
-            <div>Loading...</div>
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Name</th>
+                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Mail</th>
+                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Added date</th>
+                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Plan</th>
+                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#BFBFBF]">
+                {[...Array(5)].map((_, index) => (
+                  <SkeletonRow key={index} />
+                ))}
+              </tbody>
+            </table>
           ) : error ? (
             <div>Error: {(error as Error).message}</div>
           ) : (

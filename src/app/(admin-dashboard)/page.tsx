@@ -210,7 +210,7 @@ export default function DashboardPage() {
                 />
                 <Bar
                   dataKey="value"
-                  fill="#3B82F6"
+                  fill="#44B6CA"
                   radius={[4, 4, 0, 0]}
                   barSize={50}
                 />
