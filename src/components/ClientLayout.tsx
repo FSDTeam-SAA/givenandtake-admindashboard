@@ -18,6 +18,7 @@ import {
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 
 const menuItems = [
   { title: "Dashboard", icon: BarChart3, href: "/" },
@@ -75,10 +76,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gray-50 relative">
+      <div className="flex  w-full bg-gray-50 relative ">
         <Sidebar className="bg-[#44B6CA] text-white border-r-0">
           <SidebarHeader className="p-4">
-            <div className="bg-white text-cyan-500 px-3 py-2 rounded font-bold text-sm">YOUR LOGO</div>
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={100}
+              height={100}
+              className="w-12 h-12"
+            />
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu className="px-2">
@@ -109,8 +116,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </Sidebar>
 
         <SidebarInset className="flex-1">
-          <div className="bg-[#44B6CA] text-white py-[30px] flex justify-end items-center px-6">
-            <div className="flex items-center gap-2">
+          <div className="bg-[#44B6CA] text-white py-[30px] flex justify-end items-center px-6 sticky top-0 z-50">
+            <div className="flex items-center gap-2 ">
               <span className="text-sm">
                 {isLoading ? 'Loading...' : userData?.data?.name || 'User'}
               </span>
