@@ -29,6 +29,7 @@ const menuItems = [
   { title: "Subscriber", icon: Users, href: "/subscriber" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
   { title: "Blog", icon: CreditCard, href: "/blog" },
+  { title: "Plan", icon: CreditCard, href: "/plan" },
   { title: "Send Email", icon: Mail, href: "/send-email" },
 ]
 
