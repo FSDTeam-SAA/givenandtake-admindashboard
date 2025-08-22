@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -5,10 +6,24 @@ import { useMutation } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Bold, Italic, Underline, Link, AlignLeft, AlignCenter, AlignRight, List } from "lucide-react"
+import { 
+  Bold, 
+  Italic, 
+  Underline, 
+  Link, 
+  AlignLeft, 
+  AlignCenter, 
+  AlignRight, 
+  List,
+  ListOrdered,
+  Heading1,
+  Heading2,
+  Heading3
+} from "lucide-react"
 import SubscriberList from "../subscriber/_components/SubscriberList"
 import { EditorContent, Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
+import UnderlineExtension from "@tiptap/extension-underline"
 import LinkExtension from "@tiptap/extension-link"
 import TextAlign from "@tiptap/extension-text-align"
 
@@ -23,11 +38,45 @@ export default function SendEmailPage() {
 
     const tiptapEditor = new Editor({
       extensions: [
-        StarterKit.configure({ bulletList: { keepMarks: true } }),
-        LinkExtension.configure({ openOnClick: false }),
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        StarterKit.configure({ 
+          bulletList: { 
+            keepMarks: true,
+            HTMLAttributes: {
+              class: "list-disc pl-5",
+            },
+          },
+          orderedList: {
+            keepMarks: true,
+            HTMLAttributes: {
+              class: "list-decimal pl-5",
+            },
+          },
+          heading: {
+            levels: [1, 2, 3],
+            HTMLAttributes: {
+              class: "font-bold",
+            },
+          },
+        }),
+        UnderlineExtension,
+        LinkExtension.configure({ 
+          openOnClick: false,
+          HTMLAttributes: {
+            class: "text-blue-500 underline",
+          },
+        }),
+        TextAlign.configure({ 
+          types: ["heading", "paragraph"],
+          alignments: ['left', 'center', 'right'],
+          defaultAlignment: 'left',
+        }),
       ],
       content: "",
+      editorProps: {
+        attributes: {
+          class: "prose max-w-none focus:outline-none min-h-[200px] p-4",
+        },
+      },
     })
 
     setEditor(tiptapEditor)
@@ -69,9 +118,14 @@ export default function SendEmailPage() {
   })
 
   const handleLink = () => {
+    if (editor?.isActive('link')) {
+      editor.chain().focus().unsetLink().run()
+      return
+    }
+    
     const url = prompt("Enter the URL")
     if (url && editor) {
-      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
     }
   }
 
@@ -95,7 +149,7 @@ export default function SendEmailPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Send mail to the subscribers</h1>
-        <Button className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white h-[44px]" onClick={() => setShowSubscriberList(true)}>
+        <Button className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white h-[44px] cursor-pointer" onClick={() => setShowSubscriberList(true)}>
           See Subscriber List
         </Button>
       </div>
@@ -123,43 +177,139 @@ export default function SendEmailPage() {
 
             {isClient && editor && (
               <>
-                <div className="border border-gray-300 rounded-t-md p-2 bg-gray-50 flex flex-wrap gap-1">
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().toggleBold().run()}>
-                    <Bold className="h-4 w-4" />
+                <div className="flex items-center gap-1 p-2 border-b border-[#DFFAFF]">
+                  {/* Text formatting buttons */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('bold') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    disabled={!editor.can().chain().focus().toggleBold().run()}
+                  >
+                    <Bold className="w-4 h-4" />
+                    <span className="sr-only">Bold</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().toggleItalic().run()}>
-                    <Italic className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('italic') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    disabled={!editor.can().chain().focus().toggleItalic().run()}
+                  >
+                    <Italic className="w-4 h-4" />
+                    <span className="sr-only">Italic</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().toggleUnderline().run()}>
-                    <Underline className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('underline') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleUnderline().run()}
+                  >
+                    <Underline className="w-4 h-4" />
+                    <span className="sr-only">Underline</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={handleLink}>
-                    <Link className="h-4 w-4" />
+                  
+                  {/* Text size/heading options */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('heading', { level: 1 }) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  >
+                    <Heading1 className="w-4 h-4" />
+                    <span className="sr-only">Heading 1</span>
                   </Button>
-                  <div className="w-px bg-gray-300 mx-1" />
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().setTextAlign("left").run()}>
-                    <AlignLeft className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('heading', { level: 2 }) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  >
+                    <Heading2 className="w-4 h-4" />
+                    <span className="sr-only">Heading 2</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().setTextAlign("center").run()}>
-                    <AlignCenter className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('heading', { level: 3 }) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  >
+                    <Heading3 className="w-4 h-4" />
+                    <span className="sr-only">Heading 3</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().setTextAlign("right").run()}>
-                    <AlignRight className="h-4 w-4" />
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('link') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={handleLink}
+                  >
+                    <Link className="w-4 h-4" />
+                    <span className="sr-only">Link</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="p-2" onClick={() => editor.chain().focus().toggleBulletList().run()}>
-                    <List className="h-4 w-4" />
+                  
+                  <div className="w-px h-6 bg-[#DFFAFF] mx-2" />
+                  
+                  {/* Alignment buttons */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                   className={`w-8 h-8 ${editor.isActive({ textAlign: 'center'}) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                  >
+                    <AlignLeft className="w-4 h-4" />
+                    <span className="sr-only">Align Left</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                   className={`w-8 h-8 ${editor.isActive({ textAlign: 'center'}) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                  >
+                    <AlignCenter className="w-4 h-4" />
+                    <span className="sr-only">Align Center</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                  className={`w-8 h-8 ${editor.isActive({ textAlign: 'center'}) ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                  >
+                    <AlignRight className="w-4 h-4" />
+                    <span className="sr-only">Align Right</span>
+                  </Button>
+                  
+                  {/* List buttons */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('bulletList') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  >
+                    <List className="w-4 h-4" />
+                    <span className="sr-only">Bullet List</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`w-8 h-8 ${editor.isActive('orderedList') ? 'bg-[#44B6CA] text-white' : 'text-[#595959]'}`}
+                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  >
+                    <ListOrdered className="w-4 h-4" />
+                    <span className="sr-only">Numbered List</span>
                   </Button>
                 </div>
-
-                <div className="">
-                  <EditorContent  className="border border-gray-300 rounded-b-md p-2 !focus:outline-none !focus:ring-0 !focus:border-gray-300" editor={editor} />
-                </div>
+                
+                <EditorContent 
+                  editor={editor} 
+                  className="border border-gray-300 rounded-b-md min-h-[200px] p-4"
+                />
               </>
             )}
           </div>
 
           <Button 
-            className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
+            className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white cursor-pointer"
             onClick={handleSendEmail}
             disabled={sendEmailMutation.isPending}
           >

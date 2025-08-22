@@ -106,7 +106,7 @@ export default function Component() {
               All Blogs
             </CardTitle>
             <Button
-              className="bg-[#9EC7DC] text-white hover:bg-[#9EC7DC]/90 flex items-center"
+              className="bg-[#9EC7DC] text-white hover:bg-[#9EC7DC]/90 flex items-center cursor-pointer"
               onClick={() => {
                 setEditBlog(null)
                 setShowAddBlog(true)
@@ -163,7 +163,7 @@ export default function Component() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="w-6 h-6"
+                            className="w-6 h-6 cursor-pointer"
                             onClick={() => {
                               setEditBlog(post)
                               setShowAddBlog(true)
@@ -175,7 +175,7 @@ export default function Component() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="w-6 h-6"
+                            className="w-6 h-6 cursor-pointer"
                             onClick={() => {
                               setBlogIdToDelete(post._id)
                               setIsDeleteModalOpen(true)
@@ -222,7 +222,7 @@ export default function Component() {
               <DialogFooter className="mt-4">
                 <Button
                   variant="outline"
-                  className="border-[#44B6CA] text-[#44B6CA]"
+                  className="border-[#44B6CA] text-[#44B6CA] cursor-pointer"
                   onClick={() => {
                     setIsDeleteModalOpen(false)
                     setBlogIdToDelete(null)
@@ -231,7 +231,7 @@ export default function Component() {
                   Cancel
                 </Button>
                 <button
-                  className="bg-[#8DB1C3] hover:bg-[#8DB1C3] text-white !cursor-pointer"
+                  className="bg-[#8DB1C3] hover:bg-[#8DB1C3] text-white cursor-pointer"
                   onClick={() => blogIdToDelete && deleteMutation.mutate({ blogId: blogIdToDelete, token })}
                   disabled={deleteMutation.isPending}
                 >

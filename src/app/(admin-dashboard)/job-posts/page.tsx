@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText } from "lucide-react"
+import { ChevronLeft, FileText } from "lucide-react"
 import { useMemo, useState } from "react"
 import JobDetails from "./_components/JobDetails"
 
@@ -36,13 +36,7 @@ interface ApiResponse {
 }
 
 // Utility to validate environment variable
-const getBaseUrl = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-  if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_BASE_URL is not defined")
-  }
-  return baseUrl
-}
+
 
 // Fetch function with error handling and timeout
 const fetchJobPosts = async (): Promise<ApiResponse> => {
@@ -50,7 +44,7 @@ const fetchJobPosts = async (): Promise<ApiResponse> => {
   const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
 
   try {
-    const response = await fetch(`${getBaseUrl()}/jobs`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/admin/job/approve`, {
       signal: controller.signal,
     })
     clearTimeout(timeoutId)
@@ -162,18 +156,12 @@ export default function JobPostsPage() {
       <Card className="border-none shadow-none">
         <CardHeader className="bg-cyan-100 rounded-lg">
           <CardTitle className="flex items-center gap-2 text-4xl font-bold text-cyan-600 py-6">
-            <FileText className="h-8 w-8" />
+            <ChevronLeft    onClick={handleBack} className="h-8 w-8" />
             Job Details
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Button
-            size="sm"
-            className="mb-4 bg-cyan-400 hover:bg-cyan-500 text-white"
-            onClick={handleBack}
-          >
-            Back to List
-          </Button>
+         
           <JobDetails onBack={handleBack} jobId={selectedJobId} />
         </CardContent>
       </Card>
@@ -211,7 +199,7 @@ export default function JobPostsPage() {
           <table className="w-full table-auto" aria-labelledby="job-posts-table">
             <thead>
               <tr>
-                {["Job Title", "Company Name", "Company Email", "Posted Date", "Status", "Details"].map((header) => (
+                {["Job Title", "Company Name", "Company Email", "Posted Date",  "Details"].map((header) => (
                   <th
                     key={header}
                     scope="col"
@@ -233,7 +221,7 @@ export default function JobPostsPage() {
                     {job.companyId?.cemail || "N/A"}
                   </td>
                   <td className="px-6 py-4 text-base font-normal text-gray-600">{formatDate(job.createdAt)}</td>
-                  <td className="px-6 py-4 text-base font-normal text-gray-600">
+                  {/* <td className="px-6 py-4 text-base font-normal text-gray-600">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
                         job.jobApprove === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
@@ -241,11 +229,11 @@ export default function JobPostsPage() {
                     >
                       {job.jobApprove || "Unknown"}
                     </span>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4">
                     <Button
                       size="sm"
-                      className="bg-[#9EC7DC] hover:bg-[#9EC7DC]/85 text-white w-[102px]"
+                      className="bg-[#9EC7DC] hover:bg-[#9EC7DC]/85 text-white w-[102px] cursor-pointer"
                       onClick={() => setSelectedJobId(job._id)}
                     >
                       View

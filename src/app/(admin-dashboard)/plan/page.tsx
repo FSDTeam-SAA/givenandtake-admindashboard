@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, Edit, Trash2, Plus, ChevronLeft, X } from "lucide-react";
+import { Settings, Edit, Trash2, Plus, ChevronLeft, X, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { Textarea } from '@/components/ui/textarea';
@@ -42,7 +42,7 @@ interface PlanFormData {
 interface ApiResponse {
   success: boolean;
   message: string;
-  data: Plan[];
+  data: Plan[] | Plan;
 }
 
 // Fetch all plans
@@ -56,7 +56,21 @@ const fetchPlans = async (token: string): Promise<Plan[]> => {
     throw new Error('Failed to fetch plans');
   }
   const data: ApiResponse = await response.json();
-  return data.data;
+  return data.data as Plan[];
+};
+
+// Fetch single plan
+const fetchPlanById = async (id: string, token: string): Promise<Plan> => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/subscription/plans/${id}`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch plan details');
+  }
+  const data: ApiResponse = await response.json();
+  return data.data as Plan;
 };
 
 // Create a new plan
@@ -126,10 +140,87 @@ const SkeletonRow = () => (
       <div className="flex gap-2">
         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
       </div>
     </td>
   </tr>
 );
+
+// Plan Details Modal Component
+const PlanDetailsModal: React.FC<{ planId: string; isOpen: boolean; onClose: () => void; token: string }> = ({ planId, isOpen, onClose, token }) => {
+  const { data: plan, isLoading, isError } = useQuery<Plan, Error>({
+    queryKey: ['plan', planId],
+    queryFn: () => fetchPlanById(planId, token),
+    enabled: !!planId && !!token,
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-[24px] font-bold text-[#44B6CA]">
+            Plan Details
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+          </div>
+        ) : isError ? (
+          <div className="text-red-500">Error loading plan details</div>
+        ) : plan ? (
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Plan Title</label>
+              <p className="text-[#595959]">{plan.title}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Description</label>
+              <p className="text-[#595959]">{plan.description}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Price</label>
+              <p className="text-[#595959]">${plan.price.toFixed(2)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Features</label>
+              <ul className="list-disc pl-5 text-[#595959]">
+                {plan.features.map((feature, index) => (
+                  <li key={index}>{feature}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">For</label>
+              <p className="text-[#595959]">{plan.for}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Created At</label>
+              <p className="text-[#595959]">{new Date(plan.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-1">Updated At</label>
+              <p className="text-[#595959]">{new Date(plan.updatedAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ) : null}
+        <DialogFooter className="mt-4">
+          <Button
+            variant="outline"
+            className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white"
+            onClick={onClose}
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const SubscriptionPlansPage: React.FC = () => {
   const { data: session } = useSession();
@@ -145,7 +236,9 @@ const SubscriptionPlansPage: React.FC = () => {
   const [editPlan, setEditPlan] = useState<Plan | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   // Fetch all plans using useQuery
   const { data: plans, isLoading, isError, refetch } = useQuery<Plan[], Error>({
@@ -242,7 +335,7 @@ const SubscriptionPlansPage: React.FC = () => {
       toast.error("Please fill in all fields");
       return;
     }
-    
+
     const planData: Omit<Plan, '_id' | 'createdAt' | 'updatedAt' | '__v'> = {
       title: formData.title,
       description: formData.description,
@@ -285,6 +378,11 @@ const SubscriptionPlansPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
+  const handleViewDetailsClick = (planId: string) => {
+    setSelectedPlanId(planId);
+    setIsDetailsModalOpen(true);
+  };
+
   if (showAddForm) {
     return (
       <Card className="border-none shadow-none">
@@ -298,7 +396,7 @@ const SubscriptionPlansPage: React.FC = () => {
                 setEditPlan(null);
                 resetForm();
               }}
-              className="p-0 h-auto hover:bg-transparent"
+              className="p-0 h-auto hover:bg-transparent cursor-pointer"
             >
               <ChevronLeft className="h-[32px] w-[32px] text-[#44B6CA]" />
             </Button>
@@ -333,7 +431,7 @@ const SubscriptionPlansPage: React.FC = () => {
                 type="number"
                 step="0.01"
                 placeholder="Input price..."
-                name="price"
+                name=" price"
                 value={formData.price}
                 onChange={handleInputChange}
                 className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
@@ -341,7 +439,7 @@ const SubscriptionPlansPage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-[#595959]">Features</label>
+                <label className="block text-sm font-medium text-[#595959]">Features </label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -377,7 +475,7 @@ const SubscriptionPlansPage: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-2 ">For</label>
-              <Select  value={formData.for} onValueChange={handleSelectChange}>
+              <Select value={formData.for} onValueChange={handleSelectChange}>
                 <SelectTrigger className="w-full border-none !cursor-pointer bg-white">
                   <SelectValue placeholder="Select user type" />
                 </SelectTrigger>
@@ -392,10 +490,10 @@ const SubscriptionPlansPage: React.FC = () => {
           <div className="flex justify-center pt-4">
             <Button
               onClick={handleSubmit}
-              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white px-8 py-2 rounded-[8px]"
+              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white px-8 py-2 rounded-[8px] cursor-pointer"
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {createMutation.isPending ? "Adding..." : "Add Plan"}
+              {createMutation.isPending ? "Adding..." : editPlan ? "Update Plan" : "Add Plan"}
             </Button>
           </div>
         </CardContent>
@@ -412,7 +510,7 @@ const SubscriptionPlansPage: React.FC = () => {
               <Settings className="h-[32px] w-[32px]" />
               Subscription Plans List
             </div>
-            <Button onClick={() => setShowAddForm(true)} className="bg-[#44B6CA] hover:bg-[#3A9FB0] text-white">
+            <Button onClick={() => setShowAddForm(true)} className="bg-[#44B6CA] hover:bg-[#3A9FB0] text-white cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Add Plan
             </Button>
@@ -448,15 +546,38 @@ const SubscriptionPlansPage: React.FC = () => {
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">{plan.title}</td>
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">{plan.description}</td>
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">${plan.price.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">{plan.features.join(', ')}</td>
+                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                        <ul className="list-disc list-inside space-y-1">
+                          {plan.features.slice(0, 2).map((feature, index) => {
+                            const words = feature.split(' ');
+                            const truncatedFeature = words.length > 12
+                              ? words.slice(0, 12).join(' ') + '...'
+                              : feature;
+
+                            return (
+                              <li key={index} title={words.length > 12 ? feature : undefined}>
+                                {truncatedFeature}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </td>
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">{plan.for}</td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => handleViewDetailsClick(plan._id)}
+                            className="text-white hover:bg-gray-100 cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4 text-[#737373]" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => handleEditClick(plan)}
-                            className="text-white hover:bg-gray-100"
+                            className="text-white hover:bg-gray-100 cursor-pointer"
                           >
                             <Edit className="h-4 w-4 text-[#737373]" />
                           </Button>
@@ -464,7 +585,7 @@ const SubscriptionPlansPage: React.FC = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDeleteClick(plan)}
-                            className="text-white hover:bg-gray-100"
+                            className="text-white hover:bg-gray-100 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4 text-[#737373]" />
                           </Button>
@@ -499,13 +620,13 @@ const SubscriptionPlansPage: React.FC = () => {
           <DialogFooter className="mt-4">
             <Button
               variant="outline"
-              className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white"
+              className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white cursor-pointer"
               onClick={() => setIsDeleteModalOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white"
+              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white cursor-pointer"
               onClick={() => planToDelete && deleteMutation.mutate(planToDelete._id)}
               disabled={deleteMutation.isPending}
             >
@@ -624,6 +745,16 @@ const SubscriptionPlansPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Plan Details Modal */}
+      {selectedPlanId && (
+        <PlanDetailsModal
+          planId={selectedPlanId}
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          token={token}
+        />
+      )}
     </>
   );
 };

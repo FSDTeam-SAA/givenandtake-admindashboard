@@ -1,11 +1,10 @@
-
 "use client"
 
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Settings, Edit, Trash2, Plus, ChevronLeft, Upload, X } from "lucide-react"
+import { Settings, Edit, Trash2, Plus, ChevronLeft, Upload, X,  Eye } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -23,6 +22,7 @@ interface JobCategory {
   _id: string
   name: string
   categoryIcon: string
+  role: string[]
   createdAt: string
   updatedAt: string
   __v: number
@@ -31,20 +31,23 @@ interface JobCategory {
 export default function JobCategoriesPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [categoryName, setCategoryName] = useState("")
+  const [roles, setRoles] = useState<string[]>([])
+  const [roleInput, setRoleInput] = useState("")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const [editCategory, setEditCategory] = useState<JobCategory | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<JobCategory | null>(null)
   const [editCategoryName, setEditCategoryName] = useState("")
   const [editSelectedImage, setEditSelectedImage] = useState<string | null>(null)
   const [editImageFile, setEditImageFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
-  const session=useSession()
-  const token= session.data?.user?.accessToken
- 
+  const session = useSession()
+  const token = session.data?.user?.accessToken
 
   // Fetch categories
   const { data: categories, isLoading, isError, refetch } = useQuery<JobCategory[]>({
@@ -63,6 +66,25 @@ export default function JobCategoriesPage() {
     },
   })
 
+  // Fetch single category details
+  const { data: categoryDetails, isLoading: isDetailsLoading } = useQuery<JobCategory>({
+    queryKey: ['job-category', selectedCategory?._id],
+    queryFn: async () => {
+      if (!selectedCategory?._id) throw new Error('No category selected')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/category/job-category/${selectedCategory._id}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to fetch category details')
+      }
+      const data = await response.json()
+      return data.data
+    },
+    enabled: !!selectedCategory?._id && isDetailsModalOpen,
+  })
+
   // Add category mutation
   const addCategoryMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -73,14 +95,18 @@ export default function JobCategoriesPage() {
         },
         body: formData,
       })
+
       if (!response.ok) {
-        throw new Error("Failed to add category")
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to add category")
       }
       return response.json()
     },
     onSuccess: () => {
       toast.success("Category added successfully!")
       setCategoryName("")
+      setRoles([])
+      setRoleInput("")
       setSelectedImage(null)
       setImageFile(null)
       setShowAddForm(false)
@@ -90,7 +116,7 @@ export default function JobCategoriesPage() {
       refetch()
     },
     onError: (error) => {
-      toast.error("Failed to add category. Please try again.")
+      toast.error(error.message || "Failed to add category. Please try again.")
       console.error("Error adding category:", error)
     },
   })
@@ -194,15 +220,27 @@ export default function JobCategoriesPage() {
     }
   }
 
+  const handleAddRole = () => {
+    if (roleInput.trim()) {
+      setRoles([...roles, roleInput.trim()])
+      setRoleInput("")
+    }
+  }
+
+  const handleRemoveRole = (index: number) => {
+    setRoles(roles.filter((_, i) => i !== index))
+  }
+
   const handleAddCategory = () => {
-    if (!categoryName || !imageFile) {
-      toast.error("Please provide both a category name and image")
+    if (!categoryName || !imageFile || roles.length === 0) {
+      toast.error("Please provide category name, image, and at least one role")
       return
     }
 
     const formData = new FormData()
     formData.append("name", categoryName)
     formData.append("categoryIcon", imageFile)
+    formData.append("role", JSON.stringify(roles))
 
     addCategoryMutation.mutate(formData)
   }
@@ -219,6 +257,11 @@ export default function JobCategoriesPage() {
     setIsEditModalOpen(true)
   }
 
+  const handleDetailsClick = (category: JobCategory) => {
+    setSelectedCategory(category)
+    setIsDetailsModalOpen(true)
+  }
+
   const handleEditCategory = () => {
     if (!editCategory || !editCategoryName) {
       toast.error("Category name is required")
@@ -227,8 +270,7 @@ export default function JobCategoriesPage() {
 
     const formData = new FormData()
     formData.append("name", editCategoryName)
-    
-    // Only include the image if a new one was selected
+
     if (editImageFile) {
       formData.append("categoryIcon", editImageFile)
     }
@@ -236,7 +278,6 @@ export default function JobCategoriesPage() {
     editCategoryMutation.mutate({ id: editCategory._id, formData })
   }
 
-  // Skeleton Loader Component
   const SkeletonRow = () => (
     <tr className="bg-white">
       <td className="px-6 py-4">
@@ -248,12 +289,13 @@ export default function JobCategoriesPage() {
       <td className="px-6 py-4">
         <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex gap-2">
-          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-          <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-      </td>
+      <Button
+        variant="outline"
+        className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white cursor-pointer"
+        onClick={() => setIsDeleteModalOpen(false)}
+      >
+        Cancel
+      </Button>
     </tr>
   )
 
@@ -283,6 +325,48 @@ export default function JobCategoriesPage() {
                 onChange={(e) => setCategoryName(e.target.value)}
                 className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#595959] mb-2">Roles</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add role..."
+                  value={roleInput}
+                  onChange={(e) => setRoleInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddRole()
+                    }
+                  }}
+                  className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+                />
+                <Button
+                  onClick={handleAddRole}
+                  className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
+                >
+                  Add
+                </Button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {roles.map((role, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded"
+                  >
+                    <span>{role}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveRole(index)}
+                      className="p-0 h-auto hover:bg-transparent"
+                    >
+                      <X className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -338,7 +422,7 @@ export default function JobCategoriesPage() {
             <button
               onClick={handleAddCategory}
               className="bg-[#8DB1C3] hover:bg-[#8DB1C3] text-white px-8 py-2 !cursor-pointer rounded-[8px]"
-              disabled={!categoryName || !selectedImage || addCategoryMutation.isPending}
+              disabled={!categoryName || !selectedImage || roles.length === 0 || addCategoryMutation.isPending}
             >
               {addCategoryMutation.isPending ? "Adding..." : "Add Category"}
             </button>
@@ -357,7 +441,7 @@ export default function JobCategoriesPage() {
               <Settings className="h-[32px] w-[32px]" />
               Job Categories List
             </div>
-            <Button onClick={() => setShowAddForm(true)} className="bg-[#44B6CA] hover:bg-[#3A9FB0] text-white">
+            <Button onClick={() => setShowAddForm(true)} className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white !cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Add Category
             </Button>
@@ -376,7 +460,6 @@ export default function JobCategoriesPage() {
               </thead>
               <tbody className="divide-y divide-[#BFBFBF]">
                 {isLoading ? (
-                  // Display 3 skeleton rows to mimic loading state
                   Array(3).fill(0).map((_, index) => (
                     <SkeletonRow key={index} />
                   ))
@@ -413,8 +496,16 @@ export default function JobCategoriesPage() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => handleDetailsClick(category)}
+                            className="text-white hover:bg-gray-100 cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4 text-[#737373]" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => handleEditClick(category)}
-                            className="text-white hover:bg-gray-100"
+                            className="text-white hover:bg-gray-100 cursor-pointer"
                           >
                             <Edit className="h-4 w-4 text-[#737373]" />
                           </Button>
@@ -422,7 +513,7 @@ export default function JobCategoriesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDeleteClick(category._id)}
-                            className="text-white hover:bg-gray-100"
+                            className="text-white hover:bg-gray-100 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4 text-[#737373]" />
                           </Button>
@@ -457,13 +548,13 @@ export default function JobCategoriesPage() {
           <DialogFooter className="mt-4">
             <Button
               variant="outline"
-              className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white"
+              className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white cursor-pointer"
               onClick={() => setIsDeleteModalOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white"
+              className="bg-[#8DB1C3] hover:bg-[#6B7280] text-white cursor-pointer"
               onClick={() => categoryToDelete && deleteCategoryMutation.mutate(categoryToDelete)}
               disabled={deleteCategoryMutation.isPending}
             >
@@ -554,6 +645,92 @@ export default function JobCategoriesPage() {
               disabled={!editCategoryName || editCategoryMutation.isPending}
             >
               {editCategoryMutation.isPending ? "Updating..." : "Update Category"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[24px] font-bold text-[#44B6CA]">
+              Category Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {isDetailsLoading ? (
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-32 w-32 bg-gray-200 rounded-lg mx-auto animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </div>
+            ) : categoryDetails ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-2">Category Name</label>
+                  <p className="text-base text-[#595959]">{categoryDetails.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-2">Category Image</label>
+                  <Image
+                    src={categoryDetails.categoryIcon}
+                    alt={categoryDetails.name}
+                    width={128}
+                    height={128}
+                    className="h-32 mx-auto object-contain"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-2">Roles</label>
+                  <div className="flex flex-wrap gap-2">
+                    {categoryDetails.role.map((role, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-100 px-2 py-1 rounded text-sm text-[#595959]"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-2">Created At</label>
+                  <p className="text-base text-[#595959]">
+                    {new Date(categoryDetails.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-2">Last Updated</label>
+                  <p className="text-base text-[#595959]">
+                    {new Date(categoryDetails.updatedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-[#595959]">No details available</p>
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              className="border-[#44B6CA] text-[#44B6CA] hover:bg-[#44B6CA] hover:text-white"
+              onClick={() => setIsDetailsModalOpen(false)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
