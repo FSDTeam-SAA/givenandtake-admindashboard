@@ -1,11 +1,13 @@
-
 'use client';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
+type PitchType = "candidate" | "recruiter" | "company";
 
 interface User {
   _id: string;
@@ -38,10 +40,18 @@ interface ApiResponse {
   data: ElevatorPitch[];
 }
 
-const fetchElevatorPitches = async (type: string, token: string): Promise<ApiResponse> => {
+interface SessionUser {
+  accessToken: string;
+}
+
+interface CustomSession {
+  user?: SessionUser;
+}
+
+const fetchElevatorPitches = async (type: PitchType, token: string): Promise<ApiResponse> => {
   const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/elevator-pitch/all/elevator-pitches?type=${type}`, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   });
@@ -52,14 +62,24 @@ const fetchElevatorPitches = async (type: string, token: string): Promise<ApiRes
 };
 
 export default function ElevatorPitchPage() {
-  const [activeType, setActiveType] = useState<"candidate" | "recruiter">("candidate");
-  const { data: session } = useSession();
+  const [activeType, setActiveType] = useState<PitchType>("candidate");
+  const { data: session, status } = useSession() as { data: CustomSession | null; status: string };
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // Handle redirect to login if unauthenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
   const token = session?.user?.accessToken || '';
 
   const { data, isLoading, error } = useQuery<ApiResponse>({
     queryKey: ["elevatorPitches", activeType],
     queryFn: () => fetchElevatorPitches(activeType, token),
-    enabled: !!token, // Only fetch when token is available
+    enabled: !!token && status === "authenticated", // Only run query if authenticated and token exists
   });
 
   const formatDate = (dateString: string): string => {
@@ -101,8 +121,10 @@ export default function ElevatorPitchPage() {
       <CardContent className="p-0">
         <div className="flex pb-3 gap-[20px]">
           <Button
-            className={`px-6 h-[51px] text-white text-base font-medium rounded-[8px] ${
-              activeType === "candidate" ? "bg-[#9EC7DC]" : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
+            className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
+              activeType === "candidate"
+                ? "bg-[#9EC7DC] text-white"
+                : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
             }`}
             onClick={() => setActiveType("candidate")}
           >
@@ -110,11 +132,23 @@ export default function ElevatorPitchPage() {
           </Button>
           <Button
             className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
-              activeType === "recruiter" ? "bg-[#9EC7DC] text-white" : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
+              activeType === "recruiter"
+                ? "bg-[#9EC7DC] text-white"
+                : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
             }`}
             onClick={() => setActiveType("recruiter")}
           >
             Recruiter Elevator Pitch
+          </Button>
+          <Button
+            className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
+              activeType === "company"
+                ? "bg-[#9EC7DC] text-white"
+                : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
+            }`}
+            onClick={() => setActiveType("company")}
+          >
+            Companies Elevator Pitch
           </Button>
         </div>
         <div>
@@ -122,11 +156,21 @@ export default function ElevatorPitchPage() {
             <table className="w-full">
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Mail</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Added date</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Plan</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Details</th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Name
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Mail
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Added date
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Plan
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Details
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#BFBFBF]">
@@ -136,16 +180,36 @@ export default function ElevatorPitchPage() {
               </tbody>
             </table>
           ) : error ? (
-            <div>Error: {(error as Error).message}</div>
+            <div className="text-red-500 text-center py-4">
+              Error: {(error as Error).message}. Please try again later or contact support.
+              <Button
+                className="ml-4"
+                onClick={() => queryClient.refetchQueries({ queryKey: ["elevatorPitches", activeType] })}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : data?.data.length === 0 ? (
+            <div className="text-center py-4">No elevator pitches found for {activeType}.</div>
           ) : (
             <table className="w-full">
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Mail</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Added date</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Plan</th>
-                  <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">Details</th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Name
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Mail
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Added date
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Plan
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
+                    Details
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#BFBFBF]">
@@ -156,7 +220,11 @@ export default function ElevatorPitchPage() {
                     <td className="px-6 py-4 text-base font-normal text-[#595959]">{formatDate(pitch.createdAt)}</td>
                     <td className="px-6 py-4 text-base font-normal text-[#595959]">{pitch.userId.role}</td>
                     <td className="px-6 py-4 text-base font-normal text-[#595959]">
-                      <Button size="sm" className="bg-[#9EC7DC] hover:bg-[#9EC7DC] text-white w-[100px]">
+                      <Button
+                        size="sm"
+                        className="bg-[#9EC7DC] hover:bg-[#9EC7DC] text-white w-[100px]"
+                        // onClick={() => window.open(pitch.video.hlsUrl, "_blank")}
+                      >
                         View
                       </Button>
                     </td>
