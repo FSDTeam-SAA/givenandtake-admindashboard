@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -97,11 +97,13 @@ const updateJobStatus = async ({
   if (!response.ok) {
     throw new Error("Failed to update job status");
   }
+ 
   return response.json();
 };
 
 export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["job-detail", jobId],
@@ -113,6 +115,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     mutationFn: updateJobStatus,
     onSuccess: () => {
       toast.success("Job status updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["job-detail", jobId] });
       router.push("/job-posts");
     },
     onError: () => {
@@ -248,7 +251,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           variant="outline"
           className="px-6 py-2 text-gray-600 border-gray-300 hover:bg-gray-100"
           onClick={() => mutation.mutate({ id: jobId, adminApprove: false })}
-          disabled={mutation.isPending || job.adminApprove === true}
+          disabled={mutation.isPending || job.adminApprove === false}
         >
           Deny
         </Button>
