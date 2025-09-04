@@ -19,7 +19,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
-import image from "@/../public/assets/logo1.png"
+import image from "@/../public/assets/logo1.jpg"
 
 const menuItems = [
   { title: "Dashboard", icon: BarChart3, href: "/" },
