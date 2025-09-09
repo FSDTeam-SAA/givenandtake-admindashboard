@@ -39,6 +39,7 @@ interface CategoryTableProps {
 }
 
 const CategoryTable = ({ categories, isLoading, isError, onEdit, onDelete, onDetails }: CategoryTableProps) => (
+  
   <table className="w-full">
     <thead>
       <tr>

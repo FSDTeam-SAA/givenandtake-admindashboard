@@ -4,9 +4,10 @@ import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Settings, Plus } from "lucide-react"
+import { Settings, Plus, Search } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input" // Assuming you have an Input component
 import CategoryTable from "./categoryTableList"
 import PacificPagination from "@/components/PacificPagination"
 import DetailsCategoryModal from "./categoryDetails"
@@ -72,6 +73,7 @@ export default function JobCategoriesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("") // New state for search term
   const itemsPerPage = 10 // Can be aligned with API's itemsPerPage if needed
   const { data: session, status } = useSession()
   const token = session?.user?.accessToken
@@ -96,7 +98,13 @@ export default function JobCategoriesPage() {
   })
 
   const categories = data?.data?.category || []
-  const totalPages = data?.data?.meta?.totalPages || 1
+
+  // Filter categories based on search term
+  const filteredCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1
 
   // Add category mutation
   const addCategoryMutation = useMutation({
@@ -117,6 +125,7 @@ export default function JobCategoriesPage() {
       toast.success("Category added successfully!")
       setShowAddForm(false)
       setCurrentPage(1)
+      setSearchTerm("") // Reset search term on add
       refetch()
     },
     onError: (error: Error) => {
@@ -143,6 +152,7 @@ export default function JobCategoriesPage() {
       setIsDeleteModalOpen(false)
       setCategoryToDelete(null)
       setCurrentPage(1)
+      setSearchTerm("") // Reset search term on delete
       refetch()
     },
     onError: (error: Error) => {
@@ -169,6 +179,7 @@ export default function JobCategoriesPage() {
       toast.success("Category updated successfully!")
       setIsEditModalOpen(false)
       setEditCategory(null)
+      setSearchTerm("") // Reset search term on edit
       refetch()
     },
     onError: (error: Error) => {
@@ -176,8 +187,8 @@ export default function JobCategoriesPage() {
     },
   })
 
-  // Pagination logic with API-provided totalPages
-  const paginatedCategories = categories.slice(
+  // Pagination logic with filtered categories
+  const paginatedCategories = filteredCategories.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
@@ -203,14 +214,30 @@ export default function JobCategoriesPage() {
               <Settings className="h-[32px] w-[32px]" />
               Job Categories List
             </div>
-            <Button
-              onClick={() => setShowAddForm(true)}
-              className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
-              aria-label="Add new job category"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Category
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#595959]" />
+                <Input
+                  type="text"
+                  placeholder="Search categories..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setCurrentPage(1) // Reset to first page on search
+                  }}
+                  className="pl-10 pr-4 py-2 w-[250px] border-[#BFBFBF] focus:ring-[#44B6CA]"
+                  aria-label="Search job categories"
+                />
+              </div>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
+                aria-label="Add new job category"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Category
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
