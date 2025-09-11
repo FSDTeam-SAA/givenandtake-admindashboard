@@ -25,6 +25,7 @@ const menuItems = [
   { title: "Dashboard", icon: BarChart3, href: "/" },
   { title: "Elevator Pitch List", icon: FileText, href: "/elevator-pitch" },
   { title: "Set Job Category", icon: Settings, href: "/job-categories" },
+  { title: "Add Skills", icon: Settings, href: "/skills" },
   { title: "Job Post List", icon: List, href: "/job-posts" },
   { title: "Subscriber", icon: Users, href: "/subscriber" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
