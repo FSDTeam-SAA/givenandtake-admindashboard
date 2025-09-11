@@ -172,7 +172,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                     </ul>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-base font-normal text-[#595959] capitalize">
-                    {plan.valid}
+                    {plan.for}
                   </TableCell>
                   <TableCell className="px-6 py-4">
                     <div className="flex gap-2">
