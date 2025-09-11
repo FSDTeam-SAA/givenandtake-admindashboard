@@ -40,30 +40,6 @@ interface ApiResponse {
   }
 }
 
-// Utility function to safely parse and normalize roles
-// const normalizeRoles = (roles: string[] | undefined): string[] => {
-//   if (!roles || !Array.isArray(roles) || roles.length === 0) {
-//     return [
-//       "Academic/Faculty Pharmacist",
-//       "Clinical Pharmacist",
-//       "Community Pharmacist",
-//       "Consultant Pharmacist",
-//       "Drug Safety Specialist",
-//       "Formulation Scientist",
-//     ]
-//   }
-//   const normalized = roles.flatMap((role) => {
-//     try {
-//       // Handle nested stringified arrays (e.g., ["[\"a\",\"b\"]"])
-//       const parsed = JSON.parse(role.replace(/'/g, '"')) // Replace single quotes if present
-//       return Array.isArray(parsed) ? parsed : [role]
-//     } catch (e) {
-//       return [role]
-//     }
-//   })
-//   return [...new Set(normalized.filter((r) => typeof r === "string" && r.trim()))]
-// }
-
 export default function JobCategoriesPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -73,17 +49,21 @@ export default function JobCategoriesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("") // New state for search term
-  const itemsPerPage = 10 // Can be aligned with API's itemsPerPage if needed
+  const [searchTerm, setSearchTerm] = useState("") // State for search term
   const { data: session, status } = useSession()
   const token = session?.user?.accessToken
 
-  // Fetch categories with role normalization and correct data structure
+  // Fetch categories with pagination and search params
   const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
-    queryKey: ["job-categories"],
+    queryKey: ["job-categories", currentPage, searchTerm],
     queryFn: async () => {
       if (!token) throw new Error("No authentication token available")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/category/job-category`, {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "10",
+        ...(searchTerm && { search: searchTerm }),
+      })
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/category/job-category?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!response.ok) {
@@ -98,13 +78,7 @@ export default function JobCategoriesPage() {
   })
 
   const categories = data?.data?.category || []
-
-  // Filter categories based on search term
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1
+  const totalPages = data?.data?.meta?.totalPages || 1
 
   // Add category mutation
   const addCategoryMutation = useMutation({
@@ -187,12 +161,6 @@ export default function JobCategoriesPage() {
     },
   })
 
-  // Pagination logic with filtered categories
-  const paginatedCategories = filteredCategories.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
   if (status === "loading") {
     return <div className="text-center text-[#595959]">Loading session...</div>
   }
@@ -250,7 +218,7 @@ export default function JobCategoriesPage() {
           ) : (
             <>
               <CategoryTable
-                categories={paginatedCategories}
+                categories={categories}
                 isLoading={isLoading}
                 isError={isError}
                 onEdit={(category) => {
@@ -267,10 +235,10 @@ export default function JobCategoriesPage() {
                 }}
               />
               {totalPages > 1 && (
-                <div className="mt-4">
+                <div className="mt-4 flex justify-center">
                   <PacificPagination
-                    totalPages={totalPages}
                     currentPage={currentPage}
+                    totalPages={totalPages}
                     onPageChange={setCurrentPage}
                   />
                 </div>
