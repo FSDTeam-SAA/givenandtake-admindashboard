@@ -42,7 +42,7 @@ const normalizeRoles = (roles: string[] | undefined): string[] => {
     try {
       const parsed = JSON.parse(role)
       return Array.isArray(parsed) ? parsed : [role]
-    } catch (e) {
+    } catch {
       return [role]
     }
   })

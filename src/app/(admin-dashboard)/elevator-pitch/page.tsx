@@ -1,5 +1,5 @@
 "use client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,11 +10,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { VideoPlayer } from "@/components/video-player"; // <- adjust path if different
+import { VideoPlayer } from "@/components/video-player";
+import {toast} from "sonner"; // Assuming toast is available
 
 type PitchType = "candidate" | "recruiter" | "company";
 
@@ -77,10 +78,29 @@ const fetchElevatorPitches = async (
   return response.json();
 };
 
+const deleteElevatorPitchVideo = async (userId: string, token: string) => {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/elevator-pitch/video?userId=${userId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to delete elevator pitch");
+  }
+  return response.json();
+};
+
 export default function ElevatorPitchPage() {
   const [activeType, setActiveType] = useState<PitchType>("candidate");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPitchId, setSelectedPitchId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [pitchToDelete, setPitchToDelete] = useState<string | null>(null);
 
   const { data: session, status } = useSession() as {
     data: CustomSession | null;
@@ -104,6 +124,35 @@ export default function ElevatorPitchPage() {
     enabled: !!token && status === "authenticated",
   });
 
+  const deleteElevatorPitchMutation = useMutation({
+    mutationFn: (userId: string) => deleteElevatorPitchVideo(userId, token),
+    onSuccess: () => {
+      toast.success("Elevator pitch deleted successfully!");
+      setIsDeleteModalOpen(false);
+      setPitchToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["elevatorPitches", activeType] });
+    },
+    onError: () => {
+      toast.error(error?.message || "Failed to delete elevator pitch.");
+      console.error("Error deleting elevator pitch:", error);
+    },
+  });
+
+  const handleDeleteElevatorPitch = async () => {
+    if (pitchToDelete) {
+      try {
+        await deleteElevatorPitchMutation.mutateAsync(pitchToDelete);
+      } catch {
+        // Error toast is handled in mutation onError
+      }
+    }
+  };
+
+  const openDeleteConfirm = (userId: string) => {
+    setPitchToDelete(userId);
+    setIsDeleteModalOpen(true);
+  };
+
   const pitches = useMemo(() => data?.data ?? [], [data]);
 
   const openVideo = (pitchId: string) => {
@@ -113,7 +162,6 @@ export default function ElevatorPitchPage() {
 
   const closeVideo = () => {
     setIsDialogOpen(false);
-    // give the dialog a moment to close before clearing to avoid unmount jank
     setTimeout(() => setSelectedPitchId(null), 150);
   };
 
@@ -159,7 +207,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "candidate"
-                  ? "  text-white"
+                  ? "text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("candidate")}
@@ -170,7 +218,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "recruiter"
-                  ? "  text-white"
+                  ? "text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("recruiter")}
@@ -181,7 +229,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "company"
-                  ? "  text-white"
+                  ? "text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("company")}
@@ -277,14 +325,22 @@ export default function ElevatorPitchPage() {
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">
                         {pitch.userId.role}
                       </td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                      <td className="px-6 py-4 text-base font-normal text-[#595959] space-x-2">
                         <Button
                           size="sm"
-                          className=" text-white w-[100px]"
+                          className="text-white w-[100px]"
                           onClick={() => openVideo(pitch._id)}
                           aria-label={`View elevator pitch video for ${pitch.userId.name}`}
                         >
                           View
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="w-[40px]"
+                          onClick={() => openDeleteConfirm(pitch.userId._id)}
+                          aria-label={`Delete elevator pitch for ${pitch.userId.name}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
                       </td>
                     </tr>
@@ -328,6 +384,36 @@ export default function ElevatorPitchPage() {
               className="border"
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none max-w-md">
+          <DialogHeader >
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this elevator pitch? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+              aria-label="Cancel deletion"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteElevatorPitch}
+              aria-label="Confirm deletion"
+              disabled={deleteElevatorPitchMutation.isPending}
+              className="text-black"
+            >
+              {deleteElevatorPitchMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
