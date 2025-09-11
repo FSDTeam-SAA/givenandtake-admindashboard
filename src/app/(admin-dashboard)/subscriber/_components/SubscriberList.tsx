@@ -1,90 +1,124 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Trash2 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useState } from "react"
-import { useSession } from "next-auth/react"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Subscriber {
-  _id: string
-  email: string
-  createdAt: string
+  _id: string;
+  email: string;
+  createdAt: string;
 }
 
 interface SubscriberListProps {
-  onBack?: () => void
+  onBack?: () => void;
 }
 
 async function fetchSubscribers(token: string): Promise<Subscriber[]> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/newsletter/subscribers`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  })
-  const data = await response.json()
-  if (!data.success) throw new Error(data.message)
-  return data.data
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/newsletter/subscribers`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const data = await response.json();
+  console.log("API Response:", data); // Debug log to inspect response
+  if (!data.success) throw new Error(data.message);
+  return Array.isArray(data.data) ? data.data : []; // Ensure array is returned
 }
 
 async function deleteSubscriber(email: string, token: string): Promise<void> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/newsletter/unsubscribe/${email}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  })
-  const data = await response.json()
-  if (!data.success) throw new Error(data.message)
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/newsletter/unsubscribe/${email}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const data = await response.json();
+  if (!data.success) throw new Error(data.message);
 }
 
 export default function SubscriberList({ onBack }: SubscriberListProps) {
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [emailToDelete, setEmailToDelete] = useState<string | null>(null)
-  const session = useSession()
-  const token = session.data?.user?.accessToken || ""
-  const queryClient = useQueryClient()
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [emailToDelete, setEmailToDelete] = useState<string | null>(null);
+  const { status, data: sessionData } = useSession();
+  const token = sessionData?.user?.accessToken || "";
+  const queryClient = useQueryClient();
 
-  const { data: subscribers, isLoading, error } = useQuery({
+  const {
+    data: subscribers,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["subscribers"],
     queryFn: () => fetchSubscribers(token),
     enabled: !!token,
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (email: string) => deleteSubscriber(email, token),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subscribers"] })
-      setIsDeleteModalOpen(false)
-      setEmailToDelete(null)
+      queryClient.invalidateQueries({ queryKey: ["subscribers"] });
+      setIsDeleteModalOpen(false);
+      setEmailToDelete(null);
     },
     onError: (error) => {
-      console.error("Failed to delete subscriber:", error)
+      console.error("Failed to delete subscriber:", error);
     },
-  })
+  });
 
   const handleDeleteClick = (email: string) => {
-    setEmailToDelete(email)
-    setIsDeleteModalOpen(true)
+    setEmailToDelete(email);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Render loading state in JSX instead of early return
+  if (status === "loading") {
+    return (
+      <div className="text-center text-[#595959]">Loading session...</div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-auto w-auto p-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          className="h-auto w-auto p-0"
+        >
           <ArrowLeft className="h-6 w-6 text-[#000000]" />
           <span className="sr-only">Back</span>
         </Button>
-        <h1 className="text-[36px] font-bold text-[#000000]">All Subscribers</h1>
+        <h1 className="text-[36px] font-bold text-[#000000]">
+          All Subscribers
+        </h1>
       </div>
-      
-      {error && <div>Error: {(error as Error).message}</div>}
-      
+
+      {error && (
+        <div className="text-red-500">Error: {(error as Error).message}</div>
+      )}
+
       <Card className="border-none shadow-none bg-[#EFFDFF]">
         <CardContent className="p-0">
           <div className="max-h-[600px] overflow-y-auto rounded-lg">
@@ -104,7 +138,6 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
               </thead>
               <tbody className="divide-y divide-[#B9B9B9]">
                 {isLoading ? (
-                  // Skeleton rows mimicking the table row design
                   Array.from({ length: 5 }).map((_, index) => (
                     <tr key={index} className="bg-[#EFFDFF]">
                       <td className="px-6 py-4 text-center">
@@ -118,11 +151,15 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
                       </td>
                     </tr>
                   ))
-                ) : (
-                  subscribers?.map((subscriber, index) => (
+                ) : subscribers && subscribers.length > 0 ? (
+                  subscribers.map((subscriber, index) => (
                     <tr key={subscriber._id} className="bg-[#EFFDFF]">
-                      <td className="px-6 py-4 text-center text-base text-[#595959]">{index + 1}</td>
-                      <td className="px-6 py-4 text-left text-base text-[#595959]">{subscriber.email}</td>
+                      <td className="px-6 py-4 text-center text-base text-[#595959]">
+                        {index + 1}
+                      </td>
+                      <td className="px-6 py-4 text-left text-base text-[#595959]">
+                        {subscriber.email}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <Button
                           variant="ghost"
@@ -136,6 +173,15 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
                       </td>
                     </tr>
                   ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-6 py-4 text-center text-[#595959]"
+                    >
+                      No subscribers available
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -150,7 +196,8 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
               Confirm Deletion
             </DialogTitle>
             <DialogDescription className="text-[#595959]">
-              Are you sure you want to delete this subscriber? This action cannot be undone.
+              Are you sure you want to delete this subscriber? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
@@ -158,15 +205,17 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
               variant="outline"
               className="border-[#44B6CA] text-[#44B6CA]"
               onClick={() => {
-                setIsDeleteModalOpen(false)
-                setEmailToDelete(null)
+                setIsDeleteModalOpen(false);
+                setEmailToDelete(null);
               }}
             >
               Cancel
             </Button>
             <Button
-              className="bg-[#8DB1C3] text-white"
-              onClick={() => emailToDelete && deleteMutation.mutate(emailToDelete)}
+              className="text-white"
+              onClick={() =>
+                emailToDelete && deleteMutation.mutate(emailToDelete)
+              }
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
@@ -175,5 +224,5 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -221,7 +221,7 @@ export default function JobPostsPage() {
                   <td className="px-6 py-4">
                     <Button
                       size="sm"
-                      className="bg-[#9EC7DC] hover:bg-[#9EC7DC]/85 text-white w-[102px] cursor-pointer"
+                      className=" text-white w-[102px] cursor-pointer"
                       onClick={() => setSelectedJobId(job._id)}
                     >
                       View

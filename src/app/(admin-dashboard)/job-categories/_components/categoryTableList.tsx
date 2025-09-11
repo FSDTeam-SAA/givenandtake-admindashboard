@@ -14,7 +14,7 @@ interface JobCategory {
 }
 
 // Component: Skeleton Row for Loading State
-const SkeletonRow = ({ index }: { index: number }) => (
+const SkeletonRow = () => (
   <tr className="bg-white">
     <td className="px-6 py-4">
       <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
@@ -56,7 +56,7 @@ const CategoryTable = ({ categories, isLoading, isError, onEdit, onDelete, onDet
     </thead>
     <tbody className="divide-y divide-[#BFBFBF]">
       {isLoading ? (
-        Array.from({ length: 3 }).map((_, index) => <SkeletonRow key={`skeleton-${index}`} index={index} />)
+        Array.from({ length: 3 }).map((_, index) => <SkeletonRow key={`skeleton-${index}`} />)
       ) : isError ? (
         <tr>
           <td colSpan={3} className="px-6 py-4 text-center text-red-500">

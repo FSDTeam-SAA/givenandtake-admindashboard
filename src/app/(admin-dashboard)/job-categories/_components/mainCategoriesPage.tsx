@@ -41,28 +41,28 @@ interface ApiResponse {
 }
 
 // Utility function to safely parse and normalize roles
-const normalizeRoles = (roles: string[] | undefined): string[] => {
-  if (!roles || !Array.isArray(roles) || roles.length === 0) {
-    return [
-      "Academic/Faculty Pharmacist",
-      "Clinical Pharmacist",
-      "Community Pharmacist",
-      "Consultant Pharmacist",
-      "Drug Safety Specialist",
-      "Formulation Scientist",
-    ]
-  }
-  const normalized = roles.flatMap((role) => {
-    try {
-      // Handle nested stringified arrays (e.g., ["[\"a\",\"b\"]"])
-      const parsed = JSON.parse(role.replace(/'/g, '"')) // Replace single quotes if present
-      return Array.isArray(parsed) ? parsed : [role]
-    } catch (e) {
-      return [role]
-    }
-  })
-  return [...new Set(normalized.filter((r) => typeof r === "string" && r.trim()))]
-}
+// const normalizeRoles = (roles: string[] | undefined): string[] => {
+//   if (!roles || !Array.isArray(roles) || roles.length === 0) {
+//     return [
+//       "Academic/Faculty Pharmacist",
+//       "Clinical Pharmacist",
+//       "Community Pharmacist",
+//       "Consultant Pharmacist",
+//       "Drug Safety Specialist",
+//       "Formulation Scientist",
+//     ]
+//   }
+//   const normalized = roles.flatMap((role) => {
+//     try {
+//       // Handle nested stringified arrays (e.g., ["[\"a\",\"b\"]"])
+//       const parsed = JSON.parse(role.replace(/'/g, '"')) // Replace single quotes if present
+//       return Array.isArray(parsed) ? parsed : [role]
+//     } catch (e) {
+//       return [role]
+//     }
+//   })
+//   return [...new Set(normalized.filter((r) => typeof r === "string" && r.trim()))]
+// }
 
 export default function JobCategoriesPage() {
   const [showAddForm, setShowAddForm] = useState(false)

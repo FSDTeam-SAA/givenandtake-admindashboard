@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,9 @@ function LoginForm() {
         toast.error("Incorrect password. Please try again.");
         break;
       case "AccessDenied":
-        toast.error("Access denied. You don't have permission to access this resource.");
+        toast.error(
+          "Access denied. You don't have permission to access this resource."
+        );
         break;
       default:
         toast.error("Login failed. Please try again.");
@@ -76,10 +78,15 @@ function LoginForm() {
         <form onSubmit={handleLogin}>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <h3 className="text-lg font-semibold text-[#444444]">Please sign in to continue</h3>
+              <h3 className="text-lg font-semibold text-[#444444]">
+                Please sign in to continue
+              </h3>
 
               <div className="grid gap-2 mt-[30px]">
-                <Label className="text-base text-[#737373] font-medium" htmlFor="email">
+                <Label
+                  className="text-base text-[#737373] font-medium"
+                  htmlFor="email"
+                >
                   Email address
                 </Label>
                 <input
@@ -95,7 +102,10 @@ function LoginForm() {
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-base text-[#737373] font-medium" htmlFor="password">
+                <Label
+                  className="text-base text-[#737373] font-medium"
+                  htmlFor="password"
+                >
                   Password
                 </Label>
                 <div className="relative">
@@ -117,8 +127,14 @@ function LoginForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">
+                      {showPassword ? "Hide password" : "Show password"}
+                    </span>
                   </Button>
                 </div>
               </div>
@@ -133,7 +149,7 @@ function LoginForm() {
 
             <Button
               type="submit"
-              className="w-[240px] h-[50px] mx-auto text-base font-semibold bg-[#9EC7DC] text-white hover:bg-[#9EC7DC]/90 relative"
+              className="w-[240px] h-[50px] mx-auto text-base font-semibold   text-white hover: /90 relative"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -154,11 +170,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

@@ -159,7 +159,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "candidate"
-                  ? "bg-[#9EC7DC] text-white"
+                  ? "  text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("candidate")}
@@ -170,7 +170,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "recruiter"
-                  ? "bg-[#9EC7DC] text-white"
+                  ? "  text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("recruiter")}
@@ -181,7 +181,7 @@ export default function ElevatorPitchPage() {
             <Button
               className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
                 activeType === "company"
-                  ? "bg-[#9EC7DC] text-white"
+                  ? "  text-white"
                   : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
               }`}
               onClick={() => setActiveType("company")}
@@ -280,7 +280,7 @@ export default function ElevatorPitchPage() {
                       <td className="px-6 py-4 text-base font-normal text-[#595959]">
                         <Button
                           size="sm"
-                          className="bg-[#9EC7DC] hover:bg-[#9EC7DC] text-white w-[100px]"
+                          className=" text-white w-[100px]"
                           onClick={() => openVideo(pitch._id)}
                           aria-label={`View elevator pitch video for ${pitch.userId.name}`}
                         >
