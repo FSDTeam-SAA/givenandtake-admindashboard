@@ -6,7 +6,7 @@ export interface Plan {
   price: number
   features: string[]
   for: "candidate" | "company" | "recruiter"
-  valid: "monthly" | "yearly"
+  valid: "monthly" | "yearly" | "PayAsYouGo"
   createdAt: string
   updatedAt: string
   __v: number

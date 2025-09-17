@@ -9,7 +9,7 @@ import { toast } from "sonner";
 interface JobDetail {
   _id: string;
   userId: string;
-  companyId: Company;
+  companyId?: Company; // Made companyId optional to handle missing data
   title: string;
   description: string;
   salaryRange: string;
@@ -70,13 +70,20 @@ interface JobDetailsProps {
 }
 
 const fetchJobDetail = async (id: string): Promise<JobDetailResponse> => {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/jobs/${id}`
-  );
-  if (!response.ok) {
-    throw new Error("Failed to fetch job details");
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/jobs/${id}`
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch job details: ${response.statusText}`);
+    }
+    const data = await response.json();
+    console.log("Fetched Job Data:", data); // Debug log to inspect API response
+    return data;
+  } catch (err) {
+    console.error("Error fetching job details:", err);
+    throw err;
   }
-  return response.json();
 };
 
 const updateJobStatus = async ({
@@ -97,7 +104,6 @@ const updateJobStatus = async ({
   if (!response.ok) {
     throw new Error("Failed to update job status");
   }
- 
   return response.json();
 };
 
@@ -151,10 +157,10 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   }
 
   const job = data?.data;
-  if (!job) {
+  if (!job || !job.companyId) {
     return (
       <div className="p-6 text-gray-600">
-        No job details found.
+        No job or company details found.
         <Button onClick={onBack} className="mt-4">
           Back to List
         </Button>
@@ -168,56 +174,46 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
       <div className="grid grid-cols-6 gap-4 mb-6">
         <div className="col-span-6 md:col-span-2 text-center">
           <Image
-            src={job.companyId.clogo}
+            src={job.companyId.clogo || "/default-logo.png"} // Fallback image
             alt="Company Logo"
             width={150}
             height={150}
             className="mx-auto mb-4 rounded-md"
           />
-          <h2 className="text-xl font-bold">{job.companyId.cname}</h2>
-          <p className="text-sm text-gray-500">{job.companyId.industry}</p>
-          <p className="text-sm">{job.companyId.service.join(", ")}</p>
+          <h2 className="text-xl font-bold">{job.companyId.cname || "Unknown Company"}</h2>
+          <p className="text-sm text-gray-500">{job.companyId.industry || "N/A"}</p>
+          <p className="text-sm">{job.companyId.service?.join(", ") || "N/A"}</p>
           <p className="text-sm text-gray-600 mt-2">
-            {job.companyId.city}, {job.companyId.country} (
-            {job.companyId.zipcode})
+            {job.companyId.city || "N/A"}, {job.companyId.country || "N/A"} (
+            {job.companyId.zipcode || "N/A"})
           </p>
           <p className="text-sm flex items-center justify-center mt-1">
-            {job.companyId.cemail}
+            {job.companyId.cemail || "N/A"}
           </p>
         </div>
 
+        {/* Job Info */}
         <div className="col-span-6 md:col-span-4">
-          {/* Job Info */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-2">
             <h2 className="text-2xl font-bold col-span-2 border-b pb-2">Job Details</h2>
-
             <p className="text-base font-bold text-black">Job Position:</p>
             <p className="text-sm font-bold text-black">{job.title}</p>
-
             <p className="text-base font-bold text-black">Role:</p>
             <p className="text-sm">{job.role}</p>
-
             <p className="text-base font-bold text-black">Category:</p>
             <p className="text-sm">{job.name}</p>
-
             <p className="text-base font-bold text-black">Salary:</p>
             <p className="text-sm">{job.salaryRange}</p>
-
             <p className="text-base font-bold text-black">Shift:</p>
             <p className="text-sm">{job.shift}</p>
-
             <p className="text-base font-bold text-black">Vacancy:</p>
             <p className="text-sm">{job.vacancy}</p>
-
             <p className="text-base font-bold text-black">Experience:</p>
             <p className="text-sm">{job.experience} years</p>
-
             <p className="text-base font-bold text-black">Status:</p>
             <p className="text-sm">{job.status}</p>
-
             <p className="text-base font-bold text-black">Published:</p>
             <p className="text-sm">{formatDate(job.createdAt)}</p>
-
             <p className="text-base font-bold text-black">Deadline:</p>
             <p className="text-sm">{formatDate(job.deadline)}</p>
           </div>
@@ -234,7 +230,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
       </div>
 
       {/* Requirements */}
-      {job.applicationRequirement.length > 0 && (
+      {job.applicationRequirement?.length > 0 && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold">Application Requirements</h3>
           <ul className="list-disc list-inside text-sm text-gray-700">

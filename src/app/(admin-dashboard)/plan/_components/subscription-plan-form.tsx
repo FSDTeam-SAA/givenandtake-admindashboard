@@ -20,8 +20,8 @@ interface PlanFormData {
   description: string;
   price: string;
   features: string[];
-  for: "" | "candidate" | "company" | "recruiter"; // ✅ fixed union
-  valid: "monthly" | "yearly";
+  for: "" | "candidate" | "company" | "recruiter";
+  valid: "PayAsYouGo" | "monthly" | "yearly";
 }
 
 interface SubscriptionPlanFormProps {
@@ -81,34 +81,36 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
             />
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-[#595959] mb-2">
-              Description
-            </label>
-            <Textarea
-              placeholder="Input description..."
-              name="description"
-              value={formData.description}
-              onChange={onInputChange}
-              className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
-            />
-          </div>
+          <div className="grid grid-cols-6 gap-4">
+            {/* Price */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Price
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Input price..."
+                name="price"
+                value={formData.price}
+                onChange={onInputChange}
+                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+              />
+            </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-medium text-[#595959] mb-2">
-              Price
-            </label>
-            <Input
-              type="number"
-              step="0.01"
-              placeholder="Input price..."
-              name="price"
-              value={formData.price}
-              onChange={onInputChange}
-              className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
-            />
+            {/* Description */}
+            <div className="col-span-4">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Description
+              </label>
+              <Textarea
+                placeholder="Input description..."
+                name="description"
+                value={formData.description}
+                onChange={onInputChange}
+                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+              />
+            </div>
           </div>
 
           {/* Duration */}
@@ -124,6 +126,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent className="bg-white border-none !cursor-pointer">
+                <SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
                 <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>

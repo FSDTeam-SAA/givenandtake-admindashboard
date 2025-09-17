@@ -20,7 +20,7 @@ export interface Plan {
   price: number;
   features: string[];
   for: "candidate" | "company" | "recruiter"; // ✅ matches form
-  valid: "monthly" | "yearly"; // ✅ matches form
+  valid: "monthly" | "yearly" | "PayAsYouGo"; // ✅ matches form
   createdAt: string;
 
   updatedAt: string;
