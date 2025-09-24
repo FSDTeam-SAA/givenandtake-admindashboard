@@ -9,14 +9,25 @@ import JobDetails from "./_components/JobDetails"
 import PacificPagination from "@/components/PacificPagination"
 
 // Interface definitions
+interface Recruiter {
+  _id: string
+  firstName: string
+  lastName: string
+  emailAddress: string
+}
+
+interface Company {
+  _id: string
+  cname?: string
+  cemail?: string
+}
+
 interface Job {
   _id: string
   title: string
   jobApprove?: string
-  companyId?: {
-    cname?: string
-    cemail?: string
-  }
+  recruiterId?: Recruiter
+  companyId?: Company
   createdAt: string
   status: string
 }
@@ -60,7 +71,6 @@ const fetchJobPosts = async (page: number): Promise<ApiResponse> => {
     throw error instanceof Error ? error : new Error("Unknown error occurred")
   }
 }
-
 
 export default function JobPostsPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
@@ -107,7 +117,7 @@ export default function JobPostsPage() {
             <table className="w-full">
               <thead>
                 <tr>
-                  {["Job Title", "Company Name", "Company Email", "Posted Date", "Details"].map((header) => (
+                  {["Job Title", "Posted By Name", "Posted By Email", "Posted Date", "Details"].map((header) => (
                     <th key={header} className="px-6 py-3 text-left text-base font-medium text-gray-500 uppercase">
                       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                     </th>
@@ -196,7 +206,7 @@ export default function JobPostsPage() {
           <table className="w-full table-auto" aria-labelledby="job-posts-table">
             <thead>
               <tr>
-                {["Job Title", "Company Name", "Company Email", "Posted Date", "Details"].map((header) => (
+                {["Job Title", "Posted By Name", "Posted By Email", "Posted Date", "Details"].map((header) => (
                   <th
                     key={header}
                     scope="col"
@@ -208,27 +218,46 @@ export default function JobPostsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {jobs.map((job, index) => (
-                <tr key={job._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-6 py-4 text-base font-normal text-gray-600">{job.title || "N/A"}</td>
-                  <td className="px-6 py-4 text-base font-normal text-gray-600">
-                    {job.companyId?.cname || "Unknown Company"}
-                  </td>
-                  <td className="px-6 py-4 text-base font-normal text-gray-600">
-                    {job.companyId?.cemail || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 text-base font-normal text-gray-600">{formatDate(job.createdAt)}</td>
-                  <td className="px-6 py-4">
-                    <Button
-                      size="sm"
-                      className=" text-white w-[102px] cursor-pointer"
-                      onClick={() => setSelectedJobId(job._id)}
-                    >
-                      View
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {jobs.map((job, index) => {
+                let postedByName = "Unknown"
+                let postedByEmail = "N/A"
+                let postedByData = null
+
+                if (job.recruiterId) {
+                  postedByName = `${job.recruiterId.firstName} ${job.recruiterId.lastName}`
+                  postedByEmail = job.recruiterId.emailAddress
+                  postedByData = { recruiterId: job.recruiterId }
+                } else if (job.companyId) {
+                  postedByName = job.companyId.cname || "Unknown Company"
+                  postedByEmail = job.companyId.cemail || "N/A"
+                  postedByData = { companyId: job.companyId }
+                }
+
+                return (
+                  <tr key={job._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="px-6 py-4 text-base font-normal text-gray-600">{job.title || "N/A"}</td>
+                    <td className="px-6 py-4 text-base font-normal text-gray-600">
+                      {postedByName}
+                    </td>
+                    <td className="px-6 py-4 text-base font-normal text-gray-600">
+                      {postedByEmail}
+                    </td>
+                    <td className="px-6 py-4 text-base font-normal text-gray-600">{formatDate(job.createdAt)}</td>
+                    <td className="px-6 py-4">
+                      <Button
+                        size="sm"
+                        className="text-white w-[102px] cursor-pointer"
+                        onClick={() => {
+                          console.log(postedByData) // Log recruiterId or companyId data
+                          setSelectedJobId(job._id)
+                        }}
+                      >
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

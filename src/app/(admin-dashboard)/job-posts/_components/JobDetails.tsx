@@ -6,10 +6,49 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+interface Recruiter {
+  _id: string;
+  userId: string;
+  bio?: string;
+  banner?: string;
+  photo?: string;
+  title?: string;
+  firstName: string;
+  lastName: string;
+  sureName?: string;
+  country?: string;
+  city?: string;
+  zipCode?: string;
+  emailAddress: string;
+  phoneNumber?: string;
+}
+
+interface Company {
+  _id: string;
+  userId: string;
+  clogo?: string;
+  aboutUs?: string;
+  cname?: string;
+  country?: string;
+  city?: string;
+  zipcode?: string;
+  cemail?: string;
+  cPhoneNumber?: string;
+  links?: string[];
+  industry?: string;
+  service?: string[];
+  employeesId?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  banner?: string;
+}
+
 interface JobDetail {
   _id: string;
   userId: string;
-  companyId?: Company; // Made companyId optional to handle missing data
+  companyId?: Company;
+  recruiterId?: Recruiter;
   title: string;
   description: string;
   salaryRange: string;
@@ -37,27 +76,6 @@ interface JobDetail {
   __v: number;
 }
 
-interface Company {
-  _id: string;
-  userId: string;
-  clogo: string;
-  aboutUs: string;
-  cname: string;
-  country: string;
-  city: string;
-  zipcode: string;
-  cemail: string;
-  cPhoneNumber: string;
-  links: string[];
-  industry: string;
-  service: string[];
-  employeesId: string[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-  banner?: string;
-}
-
 interface JobDetailResponse {
   success: boolean;
   message: string;
@@ -78,7 +96,7 @@ const fetchJobDetail = async (id: string): Promise<JobDetailResponse> => {
       throw new Error(`Failed to fetch job details: ${response.statusText}`);
     }
     const data = await response.json();
-    console.log("Fetched Job Data:", data); // Debug log to inspect API response
+    console.log("Fetched Job Data:", data);
     return data;
   } catch (err) {
     console.error("Error fetching job details:", err);
@@ -157,10 +175,10 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   }
 
   const job = data?.data;
-  if (!job || !job.companyId) {
+  if (!job) {
     return (
       <div className="p-6 text-gray-600">
-        No job or company details found.
+        No job details found.
         <Button onClick={onBack} className="mt-4">
           Back to List
         </Button>
@@ -168,27 +186,61 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     );
   }
 
+  // Determine whether to show recruiterId or companyId
+  let postedByName = "Unknown";
+  let postedByEmail = "N/A";
+  let postedByData = null;
+  let postedByLogo = "/default-logo.png";
+  let postedByIndustry = "N/A";
+  let postedByServices = "N/A";
+  let postedByLocation = "N/A";
+
+  if (job.recruiterId) {
+    postedByName = `${job.recruiterId.firstName} ${job.recruiterId.lastName}`;
+    postedByEmail = job.recruiterId.emailAddress;
+    postedByLogo = job.recruiterId.photo || "/default-logo.png";
+    postedByLocation = `${job.recruiterId.city || "N/A"}, ${job.recruiterId.country || "N/A"} (${job.recruiterId.zipCode || "N/A"})`;
+    postedByData = { recruiterId: job.recruiterId };
+  } else if (job.companyId) {
+    postedByName = job.companyId.cname || "Unknown Company";
+    postedByEmail = job.companyId.cemail || "N/A";
+    postedByLogo = job.companyId.clogo || "/default-logo.png";
+    postedByIndustry = job.companyId.industry || "N/A";
+    postedByServices = job.companyId.service?.join(", ") || "N/A";
+    postedByLocation = `${job.companyId.city || "N/A"}, ${job.companyId.country || "N/A"} (${job.companyId.zipcode || "N/A"})`;
+    postedByData = { companyId: job.companyId };
+  }
+
+  // Log the appropriate data
+  console.log(postedByData);
+
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
-      {/* Company Info */}
+      {/* Posted By Info */}
       <div className="grid grid-cols-6 gap-4 mb-6">
         <div className="col-span-6 md:col-span-2 text-center">
           <Image
-            src={job.companyId.clogo || "/default-logo.png"} // Fallback image
-            alt="Company Logo"
+            src={postedByLogo}
+            alt={job.recruiterId ? "Recruiter Photo" : "Company Logo"}
             width={150}
             height={150}
             className="mx-auto mb-4 rounded-md"
           />
-          <h2 className="text-xl font-bold">{job.companyId.cname || "Unknown Company"}</h2>
-          <p className="text-sm text-gray-500">{job.companyId.industry || "N/A"}</p>
-          <p className="text-sm">{job.companyId.service?.join(", ") || "N/A"}</p>
-          <p className="text-sm text-gray-600 mt-2">
-            {job.companyId.city || "N/A"}, {job.companyId.country || "N/A"} (
-            {job.companyId.zipcode || "N/A"})
-          </p>
+          <h2 className="text-xl font-bold">{postedByName}</h2>
+          {job.recruiterId ? (
+            <>
+              <p className="text-sm text-gray-500">{job.recruiterId.title || "N/A"}</p>
+              <p className="text-sm">{job.recruiterId.sureName || "N/A"}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-500">{postedByIndustry}</p>
+              <p className="text-sm">{postedByServices}</p>
+            </>
+          )}
+          <p className="text-sm text-gray-600 mt-2">{postedByLocation}</p>
           <p className="text-sm flex items-center justify-center mt-1">
-            {job.companyId.cemail || "N/A"}
+            {postedByEmail}
           </p>
         </div>
 
@@ -257,6 +309,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           disabled={mutation.isPending || job.adminApprove === true}
         >
           Approve
+        </Button>
+        <Button onClick={onBack} className="px-6 py-2">
+          Back to List
         </Button>
       </div>
     </div>

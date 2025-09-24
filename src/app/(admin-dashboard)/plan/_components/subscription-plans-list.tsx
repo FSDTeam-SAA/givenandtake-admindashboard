@@ -138,7 +138,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
             ) : plans && plans.length > 0 ? (
               plans.map((plan) => (
                 <TableRow key={plan._id} className="bg-white hover:bg-gray-50">
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959]">
+                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959] max-w-[200px] truncate">
                     {plan.title}
                   </TableCell>
                   <TableCell className="px-6 py-4 text-base font-normal text-[#595959] max-w-[200px] truncate">
