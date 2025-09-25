@@ -12,7 +12,7 @@ import PacificPagination from "@/components/PacificPagination"
 interface Recruiter {
   _id: string
   firstName: string
-  lastName: string
+  sureName: string
   emailAddress: string
 }
 
@@ -202,7 +202,7 @@ export default function JobPostsPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto mb-4">
           <table className="w-full table-auto" aria-labelledby="job-posts-table">
             <thead>
               <tr>
@@ -224,7 +224,7 @@ export default function JobPostsPage() {
                 let postedByData = null
 
                 if (job.recruiterId) {
-                  postedByName = `${job.recruiterId.firstName} ${job.recruiterId.lastName}`
+                  postedByName = `${job.recruiterId.firstName} ${job.recruiterId.sureName}`
                   postedByEmail = job.recruiterId.emailAddress
                   postedByData = { recruiterId: job.recruiterId }
                 } else if (job.companyId) {

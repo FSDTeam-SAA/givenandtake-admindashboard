@@ -256,12 +256,10 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
             <p className="text-sm">{job.name}</p>
             <p className="text-base font-bold text-black">Salary:</p>
             <p className="text-sm">{job.salaryRange}</p>
-            <p className="text-base font-bold text-black">Shift:</p>
-            <p className="text-sm">{job.shift}</p>
             <p className="text-base font-bold text-black">Vacancy:</p>
             <p className="text-sm">{job.vacancy}</p>
             <p className="text-base font-bold text-black">Experience:</p>
-            <p className="text-sm">{job.experience} years</p>
+            <p className="text-sm">{job.experience}</p>
             <p className="text-base font-bold text-black">Status:</p>
             <p className="text-sm">{job.status}</p>
             <p className="text-base font-bold text-black">Published:</p>
@@ -304,7 +302,8 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           Deny
         </Button>
         <Button
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                        className="text-white w-[102px] cursor-pointer"
           onClick={() => mutation.mutate({ id: jobId, adminApprove: true })}
           disabled={mutation.isPending || job.adminApprove === true}
         >
