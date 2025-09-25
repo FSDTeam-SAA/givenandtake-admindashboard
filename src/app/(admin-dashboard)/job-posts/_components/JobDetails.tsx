@@ -58,7 +58,7 @@ interface JobDetail {
   educationExperience: string[];
   benefits: string[];
   vacancy: number;
-  experience: number;
+  experience: string;
   deadline: string;
   status: string;
   jobCategoryId: string;
@@ -259,9 +259,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
             <p className="text-base font-bold text-black">Vacancy:</p>
             <p className="text-sm">{job.vacancy}</p>
             <p className="text-base font-bold text-black">Experience:</p>
-            <p className="text-sm">{job.experience}</p>
+            <p className="text-sm">{job.experience.charAt(0).toUpperCase() + job.experience.slice(1)} level</p>
             <p className="text-base font-bold text-black">Status:</p>
-            <p className="text-sm">{job.status}</p>
+            <p className="text-sm">{job.status.charAt(0).toUpperCase() + job.status.slice(1)}</p>
             <p className="text-base font-bold text-black">Published:</p>
             <p className="text-sm">{formatDate(job.createdAt)}</p>
             <p className="text-base font-bold text-black">Deadline:</p>
