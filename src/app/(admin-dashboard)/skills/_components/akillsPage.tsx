@@ -465,6 +465,7 @@ export default function SkillsPage() {
             </Button>
             <Button
               variant="destructive"
+              className="bg-red-600 hover:bg-red-900 text-white"
               onClick={() => skillToDelete && deleteMutation.mutate(skillToDelete)}
               disabled={deleteMutation.isPending}
             >
