@@ -18,6 +18,7 @@ interface ApiResponse {
   data: {
     totalCandidates: number
     totalRecruiters: number
+    totalCompany: number
     totalAmount: number
     charts: {
       monthly: Array<{
@@ -121,7 +122,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="bg-[#DFFAFF] p-6 rounded-lg shadow-md">
         <h1 className="text-[36px] font-bold text-[#000000]">Overview</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
           {/* Total Candidates Card */}
           <Card className="bg-[#44B6CA] text-white border-none">
             <CardContent className="p-6">
@@ -143,6 +144,18 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-xl text-white font-medium">Total Recruiters</p>
                   <p className="text-[40px] text-white font-bold">{stats?.totalRecruiters || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Total Companyes Card */}
+          <Card className="bg-[#44B6CA] text-white border-none">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-x-[20px]">
+                <UserCheck className="h-[70px] w-[70px] text-white" />
+                <div>
+                  <p className="text-xl text-white font-medium">Total Companyes</p>
+                  <p className="text-[40px] text-white font-bold">{stats?.totalCompany || 0}</p>
                 </div>
               </div>
             </CardContent>

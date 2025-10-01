@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 
 interface Recruiter {
   _id: string;
@@ -125,9 +134,24 @@ const updateJobStatus = async ({
   return response.json();
 };
 
+const deleteJob = async (id: string) => {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/jobs/${id}`,
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to delete job");
+  }
+  return response.json();
+};
+
 export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["job-detail", jobId],
@@ -135,7 +159,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     enabled: !!jobId,
   });
 
-  const mutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: updateJobStatus,
     onSuccess: () => {
       toast.success("Job status updated successfully");
@@ -147,6 +171,20 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteJob,
+    onSuccess: () => {
+      toast.success("Job deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["job-detail", jobId] });
+      setIsDeleteModalOpen(false);
+      window.location.reload();
+    },
+    onError: () => {
+      toast.error("Failed to delete job");
+      setIsDeleteModalOpen(false);
+    },
+  });
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -155,6 +193,18 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
       year: "numeric",
       timeZone: "UTC",
     });
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(jobId);
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
   };
 
   if (typeof window === "undefined") return null;
@@ -199,7 +249,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     postedByName = `${job.recruiterId.firstName} ${job.recruiterId.lastName}`;
     postedByEmail = job.recruiterId.emailAddress;
     postedByLogo = job.recruiterId.photo || "/default-logo.png";
-    postedByLocation = `${job.recruiterId.city || "N/A"}, ${job.recruiterId.country || "N/A"} (${job.recruiterId.zipCode || "N/A"})`;
+    postedByLocation = `${job.recruiterId.city || "N/A"}, ${
+      job.recruiterId.country || "N/A"
+    } (${job.recruiterId.zipCode || "N/A"})`;
     postedByData = { recruiterId: job.recruiterId };
   } else if (job.companyId) {
     postedByName = job.companyId.cname || "Unknown Company";
@@ -207,7 +259,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     postedByLogo = job.companyId.clogo || "/default-logo.png";
     postedByIndustry = job.companyId.industry || "N/A";
     postedByServices = job.companyId.service?.join(", ") || "N/A";
-    postedByLocation = `${job.companyId.city || "N/A"}, ${job.companyId.country || "N/A"} (${job.companyId.zipcode || "N/A"})`;
+    postedByLocation = `${job.companyId.city || "N/A"}, ${
+      job.companyId.country || "N/A"
+    } (${job.companyId.zipcode || "N/A"})`;
     postedByData = { companyId: job.companyId };
   }
 
@@ -215,104 +269,148 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   console.log(postedByData);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      {/* Posted By Info */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
-        <div className="col-span-6 md:col-span-2 text-center">
-          <Image
-            src={postedByLogo}
-            alt={job.recruiterId ? "Recruiter Photo" : "Company Logo"}
-            width={150}
-            height={150}
-            className="mx-auto mb-4 rounded-md"
-          />
-          <h2 className="text-xl font-bold">{postedByName}</h2>
-          {job.recruiterId ? (
-            <>
-              <p className="text-sm text-gray-500">{job.recruiterId.title || "N/A"}</p>
-              <p className="text-sm">{job.recruiterId.sureName || "N/A"}</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-500">{postedByIndustry}</p>
-              <p className="text-sm">{postedByServices}</p>
-            </>
-          )}
-          <p className="text-sm text-gray-600 mt-2">{postedByLocation}</p>
-          <p className="text-sm flex items-center justify-center mt-1">
-            {postedByEmail}
-          </p>
-        </div>
+    <>
+      <div className="p-6 bg-white rounded-lg shadow-md">
+        {/* Posted By Info */}
+        <div className="grid grid-cols-6 gap-4 mb-6">
+          <div className="col-span-6 md:col-span-2 text-center">
+            <Image
+              src={postedByLogo}
+              alt={job.recruiterId ? "Recruiter Photo" : "Company Logo"}
+              width={150}
+              height={150}
+              className="mx-auto mb-4 rounded-md"
+            />
+            <h2 className="text-xl font-bold">{postedByName}</h2>
+            {job.recruiterId ? (
+              <>
+                <p className="text-sm text-gray-500">
+                  {job.recruiterId.title || "N/A"}
+                </p>
+                <p className="text-sm">{job.recruiterId.sureName || "N/A"}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">{postedByIndustry}</p>
+                <p className="text-sm">{postedByServices}</p>
+              </>
+            )}
+            <p className="text-sm text-gray-600 mt-2">{postedByLocation}</p>
+            <p className="text-sm flex items-center justify-center mt-1">
+              {postedByEmail}
+            </p>
+          </div>
 
-        {/* Job Info */}
-        <div className="col-span-6 md:col-span-4">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-            <h2 className="text-2xl font-bold col-span-2 border-b pb-2">Job Details</h2>
-            <p className="text-base font-bold text-black">Job Position:</p>
-            <p className="text-sm font-bold text-black">{job.title}</p>
-            <p className="text-base font-bold text-black">Role:</p>
-            <p className="text-sm">{job.role}</p>
-            <p className="text-base font-bold text-black">Category:</p>
-            <p className="text-sm">{job.name}</p>
-            <p className="text-base font-bold text-black">Salary:</p>
-            <p className="text-sm">{job.salaryRange}</p>
-            <p className="text-base font-bold text-black">Vacancy:</p>
-            <p className="text-sm">{job.vacancy}</p>
-            <p className="text-base font-bold text-black">Experience:</p>
-            <p className="text-sm">{job.experience.charAt(0).toUpperCase() + job.experience.slice(1)} level</p>
-            <p className="text-base font-bold text-black">Status:</p>
-            <p className="text-sm">{job.status.charAt(0).toUpperCase() + job.status.slice(1)}</p>
-            <p className="text-base font-bold text-black">Published:</p>
-            <p className="text-sm">{formatDate(job.createdAt)}</p>
-            <p className="text-base font-bold text-black">Deadline:</p>
-            <p className="text-sm">{formatDate(job.deadline)}</p>
+          {/* Job Info */}
+          <div className="col-span-6 md:col-span-4">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              <h2 className="text-2xl font-bold col-span-2 border-b pb-2">
+                Job Details
+              </h2>
+              <p className="text-base font-bold text-black">Job Position:</p>
+              <p className="text-sm font-bold text-black">{job.title}</p>
+              <p className="text-base font-bold text-black">Role:</p>
+              <p className="text-sm">{job.role}</p>
+              <p className="text-base font-bold text-black">Category:</p>
+              <p className="text-sm">{job.name}</p>
+              <p className="text-base font-bold text-black">Salary:</p>
+              <p className="text-sm">{job.salaryRange}</p>
+              <p className="text-base font-bold text-black">Vacancy:</p>
+              <p className="text-sm">{job.vacancy}</p>
+              <p className="text-base font-bold text-black">Experience:</p>
+              <p className="text-sm">
+                {job.experience.charAt(0).toUpperCase() +
+                  job.experience.slice(1)}{" "}
+                level
+              </p>
+              <p className="text-base font-bold text-black">Status:</p>
+              <p className="text-sm">
+                {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+              </p>
+              <p className="text-base font-bold text-black">Published:</p>
+              <p className="text-sm">{formatDate(job.createdAt)}</p>
+              <p className="text-base font-bold text-black">Deadline:</p>
+              <p className="text-sm">{formatDate(job.deadline)}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Description */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold">Description</h3>
-        <div
-          className="text-gray-600 text-sm leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: job.description }}
-        />
-      </div>
-
-      {/* Requirements */}
-      {job.applicationRequirement?.length > 0 && (
+        {/* Description */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold">Application Requirements</h3>
-          <ul className="list-disc list-inside text-sm text-gray-700">
-            {job.applicationRequirement.map((req) => (
-              <li key={req._id}>{req.requirement}</li>
-            ))}
-          </ul>
+          <h3 className="text-lg font-bold">Description</h3>
+          <div
+            className="text-gray-600 text-sm leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: job.description }}
+          />
         </div>
-      )}
 
-      {/* Approve / Deny */}
-      <div className="flex justify-end gap-4 mt-8">
-        <Button
-          variant="outline"
-          className="px-6 py-2 text-gray-600 border-gray-300 hover:bg-gray-100"
-          onClick={() => mutation.mutate({ id: jobId, adminApprove: false })}
-          disabled={mutation.isPending || job.adminApprove === false}
-        >
-          Deny
-        </Button>
-        <Button
-                        size="sm"
-                        className="text-white w-[102px] cursor-pointer"
-          onClick={() => mutation.mutate({ id: jobId, adminApprove: true })}
-          disabled={mutation.isPending || job.adminApprove === true}
-        >
-          Approve
-        </Button>
-        <Button onClick={onBack} className="px-6 py-2">
-          Back to List
-        </Button>
+        {/* Approve / Deny */}
+        <div className="flex justify-end gap-4 mt-8">
+          <Button
+            variant="outline"
+            className="px-6 py-2 text-red-600 border-gray-300 hover:bg-gray-100"
+            onClick={handleDeleteClick}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            variant="outline"
+            className="px-6 py-2 text-gray-600 border-gray-300 hover:bg-gray-100"
+            onClick={() =>
+              updateMutation.mutate({ id: jobId, adminApprove: false })
+            }
+            disabled={updateMutation.isPending || job.adminApprove === false}
+          >
+            {updateMutation.isPending ? "Updating..." : "Deny"}
+          </Button>
+          <Button
+            size="sm"
+            className="text-white w-[102px] cursor-pointer"
+            onClick={() =>
+              updateMutation.mutate({ id: jobId, adminApprove: true })
+            }
+            disabled={updateMutation.isPending || job.adminApprove === true}
+          >
+            {updateMutation.isPending ? "Updating..." : "Approve"}
+          </Button>
+          <Button onClick={onBack} className="px-6 py-2">
+            Back to List
+          </Button>
+        </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Job</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the job &quot;
+              <strong>{job.title}</strong>&quot;? This action cannot be undone and
+              all associated data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+              disabled={deleteMutation.isPending}
+              className="sm:mr-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              className="text-red-500 hover:bg-red-600 hover:text-white"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Yes, Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
