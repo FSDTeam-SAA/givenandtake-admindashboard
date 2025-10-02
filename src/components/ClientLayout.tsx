@@ -49,6 +49,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const session = useSession()
   const token = session.data?.user?.accessToken
+  const superAdmin = session.data?.user?.role === "super-admin"
+  const admin = session.data?.user?.role === "admin"
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
@@ -113,7 +115,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       setConfirmPassword("")
       setTimeout(() => setShowChangePasswordModal(false), 1500)
     } catch (error) {
-      setError( 'An error occurred while changing the password')
+      setError('An error occurred while changing the password')
     }
   }
 
@@ -122,6 +124,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (!name) return 'U'
     return name.charAt(0).toUpperCase()
   }
+
+  // Filter menu items based on user role
+  const filteredMenuItems = admin
+    ? menuItems.filter(item => !['Subscriber', 'Payment Details'].includes(item.title))
+    : menuItems;
 
   return (
     <SidebarProvider>
@@ -138,7 +145,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu className="px-2">
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

@@ -22,7 +22,7 @@ export const authOptions: AuthOptions = {
 
           const data = await res.json();
 
-          if (data?.success && data?.data?.role === "admin") {
+          if (data?.success && data?.data?.role === "admin" || data?.data?.role === "super-admin") {
             return data.data;
           } else {
             return null;
