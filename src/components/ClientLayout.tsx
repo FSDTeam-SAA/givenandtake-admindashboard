@@ -127,7 +127,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Filter menu items based on user role
   const filteredMenuItems = admin
-    ? menuItems.filter(item => !['Subscriber', 'Payment Details'].includes(item.title))
+    ? menuItems.filter(item => !['Subscriber', 'Payment Details', 'Plan'].includes(item.title))
     : menuItems;
 
   return (
