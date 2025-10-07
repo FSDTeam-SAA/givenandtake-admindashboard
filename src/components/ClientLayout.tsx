@@ -1,10 +1,22 @@
-"use client"
+"use client";
 
-import type React from "react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, FileText, List, Mail, Settings, Users, CreditCard, LogOut, X, Eye, EyeOff } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import type React from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BarChart3,
+  FileText,
+  List,
+  Settings,
+  Users,
+  CreditCard,
+  LogOut,
+  X,
+  Eye,
+  EyeOff,
+  User,
+} from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import {
   SidebarProvider,
   Sidebar,
@@ -14,12 +26,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarInset,
-} from "@/components/ui/sidebar"
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import Image from "next/image"
-import image from "@/../public/assets/logo1.jpg"
+} from "@/components/ui/sidebar";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
+import image from "@/../public/assets/logo1.jpg";
 
 const menuItems = [
   { title: "Dashboard", icon: BarChart3, href: "/" },
@@ -31,103 +43,118 @@ const menuItems = [
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
   { title: "Blog", icon: CreditCard, href: "/blog" },
   { title: "Plan", icon: CreditCard, href: "/plan" },
-  { title: "Send Email", icon: Mail, href: "/send-email" },
-]
+  { title: "Users", icon: User, href: "/users" },
+];
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const session = useSession()
-  const token = session.data?.user?.accessToken
-  const superAdmin = session.data?.user?.role === "super-admin"
-  const admin = session.data?.user?.role === "admin"
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const session = useSession();
+  const token = session.data?.user?.accessToken;
+  const superAdmin = session.data?.user?.role === "super-admin";
+  const admin = session.data?.user?.role === "admin";
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
-    queryKey: ['user'],
+    queryKey: ["user"],
     queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/single`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/user/single`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      })
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch user data')
+        throw new Error("Failed to fetch user data");
       }
-      return response.json()
+      return response.json();
     },
-    enabled: !!session.data?.user?.accessToken
-  })
+    enabled: !!session.data?.user?.accessToken,
+  });
 
   const handleLogout = async () => {
     try {
-      await signOut({ redirect: false })
-      router.push('/login')
+      await signOut({ redirect: false });
+      router.push("/login");
     } catch (error) {
-      console.error('Error during logout:', error)
+      console.error("Error during logout:", error);
     } finally {
-      setShowLogoutModal(false)
+      setShowLogoutModal(false);
     }
-  }
+  };
 
   const handleChangePassword = async () => {
-    setError("")
-    setSuccess("")
+    setError("");
+    setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match")
-      return
+      setError("New password and confirm password do not match");
+      return;
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/change-password`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          oldPassword: currentPassword,
-          newPassword
-        })
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/user/change-password`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            oldPassword: currentPassword,
+            newPassword,
+          }),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to change password')
+        throw new Error(data.message || "Failed to change password");
       }
 
-      setSuccess("Password changed successfully!")
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-      setTimeout(() => setShowChangePasswordModal(false), 1500)
+      setSuccess("Password changed successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setShowChangePasswordModal(false), 1500);
     } catch (error) {
-      setError('An error occurred while changing the password')
+      setError("An error occurred while changing the password");
     }
-  }
+  };
 
   // Get first letter of name for fallback avatar
   const getInitials = (name?: string) => {
-    if (!name) return 'U'
-    return name.charAt(0).toUpperCase()
-  }
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
 
   // Filter menu items based on user role
   const filteredMenuItems = admin
-    ? menuItems.filter(item => !['Subscriber', 'Payment Details', 'Plan'].includes(item.title))
+    ? menuItems.filter(
+        (item) =>
+          !["Subscriber", "Payment Details", "Plan", "Users"].includes(
+            item.title
+          )
+      )
     : menuItems;
 
   return (
@@ -149,17 +176,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    className={`w-full justify-start text-white hover:bg-[#42A3B2] h-[50px] ${pathname === item.href ? "bg-[#42A3B2]" : ""}`}
+                    className={`w-full justify-start text-white hover:bg-[#42A3B2] h-[50px] ${
+                      pathname === item.href ? "bg-[#42A3B2]" : ""
+                    }`}
                   >
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
-                      <span className="text-base font-medium">{item.title}</span>
+                      <span className="text-base font-medium">
+                        {item.title}
+                      </span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
               <SidebarMenuItem className="mt-[300px]">
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   className="w-full justify-start text-white hover:bg-[#42A3B2] h-[50px] cursor-pointer"
                   onClick={() => setShowLogoutModal(true)}
                 >
@@ -175,15 +206,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <div className="bg-[#44B6CA] text-white py-[30px] flex justify-end items-center px-6 sticky top-0 z-50">
             <div className="flex items-center gap-2">
               <span className="text-sm">
-                {isLoading ? 'Loading...' : userData?.data?.name || 'User'}
+                {isLoading ? "Loading..." : userData?.data?.name || "User"}
               </span>
-              <Avatar 
-                className="h-8 w-8 cursor-pointer" 
+              <Avatar
+                className="h-8 w-8 cursor-pointer"
                 onClick={() => setShowChangePasswordModal(true)}
               >
-                <AvatarImage 
-                  src={userData?.data?.avatar?.url} 
-                  alt={userData?.data?.name} 
+                <AvatarImage
+                  src={userData?.data?.avatar?.url}
+                  alt={userData?.data?.name}
                 />
                 <AvatarFallback className="bg-white text-cyan-500">
                   {getInitials(userData?.data?.name)}
@@ -200,7 +231,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Confirm Logout</h3>
-                <button 
+                <button
                   onClick={() => setShowLogoutModal(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -208,7 +239,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 </button>
               </div>
               <p className="mb-6 text-gray-600">
-                Are you sure you want to logout? You&apos;ll need to sign in again to access your account.
+                Are you sure you want to logout? You&apos;ll need to sign in
+                again to access your account.
               </p>
               <div className="flex justify-end gap-3">
                 <button
@@ -234,14 +266,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Change Password</h3>
-                <button 
+                <button
                   onClick={() => {
-                    setShowChangePasswordModal(false)
-                    setError("")
-                    setSuccess("")
-                    setCurrentPassword("")
-                    setNewPassword("")
-                    setConfirmPassword("")
+                    setShowChangePasswordModal(false);
+                    setError("");
+                    setSuccess("");
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
                   }}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -250,7 +282,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </div>
               <div className="space-y-4">
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Current Password
+                  </label>
                   <input
                     type={showCurrentPassword ? "text" : "password"}
                     value={currentPassword}
@@ -271,7 +305,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   </button>
                 </div>
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700">New Password</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    New Password
+                  </label>
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
@@ -292,7 +328,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   </button>
                 </div>
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Confirm New Password
+                  </label>
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
@@ -318,12 +356,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => {
-                    setShowChangePasswordModal(false)
-                    setError("")
-                    setSuccess("")
-                    setCurrentPassword("")
-                    setNewPassword("")
-                    setConfirmPassword("")
+                    setShowChangePasswordModal(false);
+                    setError("");
+                    setSuccess("");
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
@@ -341,5 +379,5 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         )}
       </div>
     </SidebarProvider>
-  )
+  );
 }
