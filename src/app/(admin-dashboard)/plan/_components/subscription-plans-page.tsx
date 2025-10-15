@@ -34,13 +34,17 @@ const SubscriptionPlansPageContent: React.FC = () => {
     price: "",
     features: [""],
     for: "",
-    valid: "PayAsYouGo", // Default to a valid option
+    valid: "PayAsYouGo",
   });
   const [editPlan, setEditPlan] = useState<Plan | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch all plans
   const {
@@ -56,6 +60,16 @@ const SubscriptionPlansPageContent: React.FC = () => {
     },
     enabled: !!token,
   });
+
+  // Paginated data
+  const totalPages = plans ? Math.ceil(plans.length / itemsPerPage) : 1;
+  const paginatedPlans = plans
+    ? plans.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : [];
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   // Create mutation
   const createMutation = useMutation<
@@ -180,7 +194,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
       price: Number.parseFloat(formData.price),
       features: formData.features.filter((f) => f.trim() !== ""),
       for: formData.for as "candidate" | "company" | "recruiter",
-      valid: formData.valid, // Use the selected valid value
+      valid: formData.valid,
     };
 
     if (editPlan) {
@@ -197,7 +211,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
       price: "",
       features: [""],
       for: "",
-      valid: "PayAsYouGo", // Reset to a valid default
+      valid: "PayAsYouGo",
     });
   };
 
@@ -215,7 +229,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
       price: plan.price.toString(),
       features: plan.features.length > 0 ? plan.features : [""],
       for: plan.for,
-      valid: plan.valid, // Ensure this matches one of the SelectItem values
+      valid: plan.valid,
     });
     setShowAddForm(true);
   };
@@ -266,13 +280,16 @@ const SubscriptionPlansPageContent: React.FC = () => {
   return (
     <>
       <SubscriptionPlansList
-        plans={plans}
+        plans={paginatedPlans}
         isLoading={isLoading}
         isError={isError}
         onAddPlan={handleAddPlan}
         onEditPlan={handleEditPlan}
         onDeletePlan={handleDeletePlan}
         onViewDetails={handleViewDetails}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
       />
 
       <DeletePlanModal

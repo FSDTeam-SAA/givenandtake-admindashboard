@@ -15,7 +15,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { VideoPlayer } from "@/components/video-player";
-import {toast} from "sonner"; // Assuming toast is available
+import { toast } from "sonner";
 
 type PitchType = "candidate" | "recruiter" | "company";
 
@@ -58,6 +58,7 @@ interface CustomSession {
   user?: SessionUser;
 }
 
+// ✅ Fetch all elevator pitches at once
 const fetchElevatorPitches = async (
   type: PitchType,
   token: string
@@ -78,6 +79,7 @@ const fetchElevatorPitches = async (
   return response.json();
 };
 
+// ✅ Delete elevator pitch
 const deleteElevatorPitchVideo = async (userId: string, token: string) => {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/elevator-pitch/video?userId=${userId}`,
@@ -102,12 +104,18 @@ export default function ElevatorPitchPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [pitchToDelete, setPitchToDelete] = useState<string | null>(null);
 
+  // ✅ Custom pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Number of rows per page
+
   const { data: session, status } = useSession() as {
     data: CustomSession | null;
     status: string;
   };
+
   const router = useRouter();
   const queryClient = useQueryClient();
+  const token = session?.user?.accessToken || "";
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -116,13 +124,25 @@ export default function ElevatorPitchPage() {
     }
   }, [status, router]);
 
-  const token = session?.user?.accessToken || "";
-
+  // ✅ Fetch all data (no server pagination)
   const { data, isLoading, error } = useQuery<ApiResponse>({
     queryKey: ["elevatorPitches", activeType],
     queryFn: () => fetchElevatorPitches(activeType, token),
     enabled: !!token && status === "authenticated",
   });
+
+  const allPitches = useMemo(() => data?.data ?? [], [data]);
+
+  // ✅ Pagination logic
+  const totalPages = Math.ceil(allPitches.length / itemsPerPage);
+  const paginatedPitches = allPitches.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const deleteElevatorPitchMutation = useMutation({
     mutationFn: (userId: string) => deleteElevatorPitchVideo(userId, token),
@@ -130,21 +150,18 @@ export default function ElevatorPitchPage() {
       toast.success("Elevator pitch deleted successfully!");
       setIsDeleteModalOpen(false);
       setPitchToDelete(null);
-      queryClient.invalidateQueries({ queryKey: ["elevatorPitches", activeType] });
+      queryClient.invalidateQueries({
+        queryKey: ["elevatorPitches", activeType],
+      });
     },
-    onError: () => {
-      toast.error(error?.message || "Failed to delete elevator pitch.");
-      console.error("Error deleting elevator pitch:", error);
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to delete elevator pitch.");
     },
   });
 
   const handleDeleteElevatorPitch = async () => {
     if (pitchToDelete) {
-      try {
-        await deleteElevatorPitchMutation.mutateAsync(pitchToDelete);
-      } catch {
-        // Error toast is handled in mutation onError
-      }
+      await deleteElevatorPitchMutation.mutateAsync(pitchToDelete);
     }
   };
 
@@ -152,8 +169,6 @@ export default function ElevatorPitchPage() {
     setPitchToDelete(userId);
     setIsDeleteModalOpen(true);
   };
-
-  const pitches = useMemo(() => data?.data ?? [], [data]);
 
   const openVideo = (pitchId: string) => {
     setSelectedPitchId(pitchId);
@@ -174,21 +189,13 @@ export default function ElevatorPitchPage() {
 
   const SkeletonRow = () => (
     <tr className="bg-white">
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
-      </td>
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
-      </td>
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
-      </td>
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
-      </td>
-      <td className="px-6 py-4">
-        <div className="h-8 bg-gray-200 rounded w-[100px] animate-pulse" />
-      </td>
+      {Array(5)
+        .fill(0)
+        .map((_, index) => (
+          <td key={index} className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+          </td>
+        ))}
     </tr>
   );
 
@@ -203,62 +210,48 @@ export default function ElevatorPitchPage() {
         </CardHeader>
 
         <CardContent className="p-0">
+          {/* Filter buttons */}
           <div className="flex pb-3 gap-[20px]">
-            <Button
-              className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
-                activeType === "candidate"
-                  ? "text-white"
-                  : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
-              }`}
-              onClick={() => setActiveType("candidate")}
-              aria-pressed={activeType === "candidate"}
-            >
-              Users Elevator Pitch
-            </Button>
-            <Button
-              className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
-                activeType === "recruiter"
-                  ? "text-white"
-                  : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
-              }`}
-              onClick={() => setActiveType("recruiter")}
-              aria-pressed={activeType === "recruiter"}
-            >
-              Recruiter Elevator Pitch
-            </Button>
-            <Button
-              className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
-                activeType === "company"
-                  ? "text-white"
-                  : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
-              }`}
-              onClick={() => setActiveType("company")}
-              aria-pressed={activeType === "company"}
-            >
-              Companies Elevator Pitch
-            </Button>
+            {(["candidate", "recruiter", "company"] as PitchType[]).map(
+              (type) => (
+                <Button
+                  key={type}
+                  className={`px-6 h-[51px] text-base font-medium rounded-[8px] ${
+                    activeType === type
+                      ? "text-white"
+                      : "bg-transparent text-[#8DB1C3] border border-[#8DB1C3]"
+                  }`}
+                  onClick={() => {
+                    setActiveType(type);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {type === "candidate"
+                    ? "Users Elevator Pitch"
+                    : type === "recruiter"
+                    ? "Recruiter Elevator Pitch"
+                    : "Companies Elevator Pitch"}
+                </Button>
+              )
+            )}
           </div>
 
+          {/* Table */}
           <div>
             {isLoading ? (
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Mail
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Added date
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Plan
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Details
-                    </th>
+                    {["Name", "Mail", "Added date", "Plan", "Details"].map(
+                      (head) => (
+                        <th
+                          key={head}
+                          className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase"
+                        >
+                          {head}
+                        </th>
+                      )
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#BFBFBF]">
@@ -269,20 +262,9 @@ export default function ElevatorPitchPage() {
               </table>
             ) : error ? (
               <div className="text-red-500 text-center py-4">
-                Error: {(error as Error).message}. Please try again later or
-                contact support.
-                <Button
-                  className="ml-4"
-                  onClick={() =>
-                    queryClient.refetchQueries({
-                      queryKey: ["elevatorPitches", activeType],
-                    })
-                  }
-                >
-                  Retry
-                </Button>
+                Error: {(error as Error).message}
               </div>
-            ) : pitches.length === 0 ? (
+            ) : paginatedPitches.length === 0 ? (
               <div className="text-center py-4">
                 No elevator pitches found for {activeType}.
               </div>
@@ -290,47 +272,41 @@ export default function ElevatorPitchPage() {
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Mail
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Added date
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Plan
-                    </th>
-                    <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                      Details
-                    </th>
+                    {["Name", "Mail", "Added date", "Plan", "Details"].map(
+                      (head) => (
+                        <th
+                          key={head}
+                          className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase"
+                        >
+                          {head}
+                        </th>
+                      )
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#BFBFBF]">
-                  {pitches.map((pitch, index) => (
+                  {paginatedPitches.map((pitch, index) => (
                     <tr
                       key={pitch._id}
                       className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
                     >
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                      <td className="px-6 py-4 text-base text-[#595959]">
                         {pitch.userId.name}
                       </td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                      <td className="px-6 py-4 text-base text-[#595959]">
                         {pitch.userId.email}
                       </td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                      <td className="px-6 py-4 text-base text-[#595959]">
                         {formatDate(pitch.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959]">
+                      <td className="px-6 py-4 text-base text-[#595959]">
                         {pitch.userId.role}
                       </td>
-                      <td className="px-6 py-4 text-base font-normal text-[#595959] space-x-2">
+                      <td className="px-6 py-4 text-base text-[#595959] space-x-2">
                         <Button
                           size="sm"
                           className="text-white w-[100px]"
                           onClick={() => openVideo(pitch._id)}
-                          aria-label={`View elevator pitch video for ${pitch.userId.name}`}
                         >
                           View
                         </Button>
@@ -338,7 +314,6 @@ export default function ElevatorPitchPage() {
                           size="sm"
                           className="w-[40px]"
                           onClick={() => openDeleteConfirm(pitch.userId._id)}
-                          aria-label={`Delete elevator pitch for ${pitch.userId.name}`}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
@@ -349,6 +324,38 @@ export default function ElevatorPitchPage() {
               </table>
             )}
           </div>
+
+          {/* ✅ Custom Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button
+                  key={i}
+                  variant={currentPage === i + 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(i + 1)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -361,55 +368,39 @@ export default function ElevatorPitchPage() {
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>Elevator Pitch</DialogTitle>
             <DialogDescription>
-              Secure HLS playback inside the app. Press <kbd>Esc</kbd> to close.
+              Secure HLS playback inside the app.
             </DialogDescription>
           </DialogHeader>
-
           <div className="px-6 pb-6">
             {selectedPitchId ? (
-              <VideoPlayer
-                pitchId={selectedPitchId}
-                className="w-full mx-auto"
-              />
+              <VideoPlayer pitchId={selectedPitchId} className="w-full mx-auto" />
             ) : (
-              <div className="w-full aspect-video rounded-xl bg-neutral-100" />
+              <div className="w-full aspect-video bg-neutral-100 rounded-xl" />
             )}
           </div>
-
           <DialogFooter className="px-6 pb-6">
-            <Button
-              variant="secondary"
-              onClick={closeVideo}
-              aria-label="Close video dialog"
-              className="border"
-            >
+            <Button variant="secondary" onClick={closeVideo}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none max-w-md">
-          <DialogHeader >
+          <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this elevator pitch? This action
-              cannot be undone.
+              Are you sure you want to delete this elevator pitch?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={() => setIsDeleteModalOpen(false)}
-              aria-label="Cancel deletion"
-            >
+            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleDeleteElevatorPitch}
-              aria-label="Confirm deletion"
               disabled={deleteElevatorPitchMutation.isPending}
               className="text-black"
             >

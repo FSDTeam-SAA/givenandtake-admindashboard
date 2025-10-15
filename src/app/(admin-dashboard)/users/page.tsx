@@ -32,6 +32,7 @@ interface User {
   role: "admin" | "super-admin" | "candidate" | "recruiter" | "company";
   address: string;
   dateOfbirth: string;
+  evpAvailable: boolean;
   avatar: {
     url: string;
   };
@@ -51,6 +52,7 @@ interface UsersResponse {
 export default function UsersPage() {
   const session = useSession();
   const token = session.data?.user?.accessToken;
+  const currentRole = session.data?.user?.role; // current logged-in user role
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +115,15 @@ export default function UsersPage() {
 
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
-    return matchesSearch && matchesRole;
+    // Restrict visibility for admin users
+    let canView = true;
+    if (currentRole === "admin") {
+      if (user.role === "super-admin" || user.role === "admin") {
+        canView = false;
+      }
+    }
+
+    return matchesSearch && matchesRole && canView;
   });
 
   // Pagination
@@ -189,8 +199,13 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="super-admin">Super Admin</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                {/* Super-admins can see all roles; admins cannot see admin/super-admin */}
+                {currentRole === "super-admin" && (
+                  <>
+                    <SelectItem value="super-admin">Super Admin</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </>
+                )}
                 <SelectItem value="recruiter">Recruiter</SelectItem>
                 <SelectItem value="candidate">Candidate</SelectItem>
                 <SelectItem value="company">Company</SelectItem>
@@ -216,9 +231,9 @@ export default function UsersPage() {
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold">User</TableHead>
-                      <TableHead className="font-semibold">Contact</TableHead>
                       <TableHead className="font-semibold">Role</TableHead>
                       <TableHead className="font-semibold">Location</TableHead>
+                      <TableHead className="font-semibold">EVP</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Joined</TableHead>
                       <TableHead className="font-semibold text-center">
@@ -251,11 +266,6 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-600">
-                            {user.phoneNum}
-                          </div>
-                        </TableCell>
-                        <TableCell>
                           <Badge
                             className={getRoleBadgeColor(user.role)}
                             variant="secondary"
@@ -267,6 +277,14 @@ export default function UsersPage() {
                           <div className="text-sm text-gray-600">
                             {user.address}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`w-fit ${user.evpAvailable? "bg-green-100 text-green-800":"bg-red-100 text-red-800"}`}
+                            variant="secondary"
+                          >
+                            {user.evpAvailable ? "Yes" : "No"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">

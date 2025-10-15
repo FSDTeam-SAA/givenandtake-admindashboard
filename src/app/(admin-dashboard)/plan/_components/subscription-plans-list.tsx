@@ -19,10 +19,9 @@ export interface Plan {
   description: string;
   price: number;
   features: string[];
-  for: "candidate" | "company" | "recruiter"; // ✅ matches form
-  valid: "monthly" | "yearly" | "PayAsYouGo"; // ✅ matches form
+  for: "candidate" | "company" | "recruiter";
+  valid: "monthly" | "yearly" | "PayAsYouGo";
   createdAt: string;
-
   updatedAt: string;
   __v: number;
 }
@@ -35,36 +34,20 @@ interface SubscriptionPlansListProps {
   onEditPlan: (plan: Plan) => void;
   onDeletePlan: (plan: Plan) => void;
   onViewDetails: (planId: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-// Skeleton Loader Component
 const SkeletonRow = () => (
   <TableRow className="bg-white">
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="flex gap-2">
-        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
-      </div>
-    </TableCell>
+    {Array(7)
+      .fill(0)
+      .map((_, i) => (
+        <TableCell key={i}>
+          <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+        </TableCell>
+      ))}
   </TableRow>
 );
 
@@ -76,6 +59,9 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
   onEditPlan,
   onDeletePlan,
   onViewDetails,
+  currentPage,
+  totalPages,
+  onPageChange,
 }) => {
   return (
     <Card className="border-none shadow-none">
@@ -94,93 +80,72 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
           </Button>
         </CardTitle>
       </CardHeader>
+
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Plan Title
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Description
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Price
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Duration
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Features
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Valid For
-              </TableHead>
-              <TableHead className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                Action
-              </TableHead>
+              {[
+                "Plan Title",
+                "Description",
+                "Price",
+                "Duration",
+                "Features",
+                "Valid For",
+                "Action",
+              ].map((heading) => (
+                <TableHead
+                  key={heading}
+                  className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase"
+                >
+                  {heading}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
+
           <TableBody className="divide-y divide-[#BFBFBF]">
             {isLoading ? (
               Array(3)
                 .fill(0)
-                .map((_, index) => <SkeletonRow key={index} />)
+                .map((_, i) => <SkeletonRow key={i} />)
             ) : isError ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="px-6 py-4 text-center text-red-500"
-                >
+                <TableCell colSpan={7} className="text-center text-red-500">
                   Error loading plans
                 </TableCell>
               </TableRow>
             ) : plans && plans.length > 0 ? (
               plans.map((plan) => (
                 <TableRow key={plan._id} className="bg-white hover:bg-gray-50">
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959] max-w-[200px] truncate">
-                    {plan.title}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959] max-w-[200px] truncate">
-                    {plan.description}
-                  </TableCell>
-
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959]">
-                    ${plan.price.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959] capitalize">
-                    {plan.valid}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959]">
+                  <TableCell className="truncate max-w-[200px]">{plan.title}</TableCell>
+                  <TableCell className="truncate max-w-[200px]">{plan.description}</TableCell>
+                  <TableCell>${plan.price.toFixed(2)}</TableCell>
+                  <TableCell className="capitalize">{plan.valid}</TableCell>
+                  <TableCell>
                     <ul className="list-disc list-inside space-y-1">
                       {plan.features.slice(0, 2).map((feature, index) => {
                         const words = feature.split(" ");
-                        const truncatedFeature =
+                        const truncated =
                           words.length > 12
                             ? words.slice(0, 12).join(" ") + "..."
                             : feature;
-
                         return (
-                          <li
-                            key={index}
-                            title={words.length > 12 ? feature : undefined}
-                          >
-                            {truncatedFeature}
+                          <li key={index} title={words.length > 12 ? feature : undefined}>
+                            {truncated}
                           </li>
                         );
                       })}
                     </ul>
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-base font-normal text-[#595959] capitalize">
-                    {plan.for}
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
+                  <TableCell className="capitalize">{plan.for}</TableCell>
+                  <TableCell>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => onViewDetails(plan._id)}
-                        className="text-white hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100"
                       >
                         <Eye className="h-4 w-4 text-[#737373]" />
                       </Button>
@@ -188,7 +153,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                         size="sm"
                         variant="ghost"
                         onClick={() => onEditPlan(plan)}
-                        className="text-white hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100"
                       >
                         <Edit className="h-4 w-4 text-[#737373]" />
                       </Button>
@@ -196,7 +161,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                         size="sm"
                         variant="ghost"
                         onClick={() => onDeletePlan(plan)}
-                        className="text-white hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100"
                       >
                         <Trash2 className="h-4 w-4 text-[#737373]" />
                       </Button>
@@ -206,7 +171,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="px-6 py-4 text-center">
+                <TableCell colSpan={7} className="text-center">
                   No plans found
                 </TableCell>
               </TableRow>
@@ -214,6 +179,43 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+          <div className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => onPageChange(currentPage - 1)}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <Button
+                key={i}
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => onPageChange(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => onPageChange(currentPage + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

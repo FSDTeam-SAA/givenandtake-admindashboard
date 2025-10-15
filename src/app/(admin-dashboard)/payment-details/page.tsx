@@ -1,13 +1,14 @@
-
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreditCard } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import jsPDF from "jspdf"
 import { format } from "date-fns"
+import { Button } from "@/components/ui/button"
 
-// Define TypeScript interfaces
+// ----- Interfaces -----
 interface User {
   _id: string
   name: string
@@ -17,6 +18,7 @@ interface User {
 interface Plan {
   _id: string
   title: string
+  price?: number
 }
 
 interface Payment {
@@ -25,38 +27,38 @@ interface Payment {
   userId: User
   amount: number
   createdAt: string
-  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded'
+  paymentStatus: "pending" | "completed" | "failed" | "refunded" | "complete"
   paymentMethod: string
   planId?: Plan
+}
+
+interface Meta {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  itemsPerPage: number
 }
 
 interface ApiResponse {
   success: boolean
   message: string
   data: Payment[]
+  meta: Meta
 }
 
-// Fetch payments with proper typing
-const fetchPayments = async (): Promise<ApiResponse> => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/payments/all-payments`)
+// ----- Fetcher -----
+const fetchPayments = async (page: number): Promise<ApiResponse> => {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/payments/all-payments?page=${page}`
+  )
   if (!response.ok) {
     throw new Error("Failed to fetch payments")
   }
   return response.json()
 }
 
-// Define type for receipt download function parameters
-interface ReceiptData {
-  transactionId: string
-  userId: User
-  amount: number
-  createdAt: string
-  paymentStatus: string
-  paymentMethod: string
-  planId: Plan
-}
-
-const downloadReceipt = (payment: ReceiptData): void => {
+// ----- Receipt Download -----
+const downloadReceipt = (payment: Payment): void => {
   const doc = new jsPDF()
   doc.setFontSize(18)
   doc.text("Payment Receipt", 20, 20)
@@ -68,11 +70,11 @@ const downloadReceipt = (payment: ReceiptData): void => {
   doc.text(`Date: ${format(new Date(payment.createdAt), "yyyy-MM-dd")}`, 20, 80)
   doc.text(`Status: ${payment.paymentStatus}`, 20, 90)
   doc.text(`Method: ${payment.paymentMethod}`, 20, 100)
-  doc.text(`Plan: ${payment.planId.title}`, 20, 110)
+  doc.text(`Plan: ${payment.planId?.title || "N/A"}`, 20, 110)
   doc.save(`receipt_${payment.transactionId}.pdf`)
 }
 
-// Skeleton Loader Component
+// ----- Skeleton Loader -----
 function SkeletonTable() {
   return (
     <div className="space-y-6">
@@ -87,23 +89,32 @@ function SkeletonTable() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                {Array(8).fill(0).map((_, index) => (
-                  <th key={index} className="px-6 py-3">
-                    <div className="h-4 w-20 bg-gray-200 animate-pulse rounded" />
-                  </th>
-                ))}
+                {Array(8)
+                  .fill(0)
+                  .map((_, index) => (
+                    <th key={index} className="px-6 py-3">
+                      <div className="h-4 w-20 bg-gray-200 animate-pulse rounded" />
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#B9B9B9]">
-              {Array(5).fill(0).map((_, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  {Array(8).fill(0).map((_, cellIndex) => (
-                    <td key={cellIndex} className="px-6 py-4">
-                      <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {Array(5)
+                .fill(0)
+                .map((_, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
+                    {Array(8)
+                      .fill(0)
+                      .map((_, cellIndex) => (
+                        <td key={cellIndex} className="px-6 py-4">
+                          <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />
+                        </td>
+                      ))}
+                  </tr>
+                ))}
             </tbody>
           </table>
         </CardContent>
@@ -112,15 +123,25 @@ function SkeletonTable() {
   )
 }
 
+// ----- Main Component -----
 export default function PaymentDetailsPage() {
-  const { data, isLoading, error } = useQuery<ApiResponse, Error>({
-    queryKey: ["payments"],
-    queryFn: fetchPayments,
+  const [page, setPage] = useState(1)
+
+  const {
+    data,
+    isPending,
+    error,
+    isFetching,
+  } = useQuery<ApiResponse, Error>({
+    queryKey: ["payments", page],
+    queryFn: () => fetchPayments(page),
+    placeholderData: (prev) => prev, // ✅ replaces keepPreviousData
   })
 
-  const payments = data?.data || []
+  const payments = data?.data ?? []
+  const meta = data?.meta
 
-  if (isLoading) return <SkeletonTable />
+  if (isPending) return <SkeletonTable />
   if (error) return <div>Error: {error.message}</div>
 
   return (
@@ -131,48 +152,74 @@ export default function PaymentDetailsPage() {
           Payment Details
         </h1>
       </div>
+
       <Card className="border-none shadow-none">
         <CardContent className="p-0">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Transaction ID</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Customer Name</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Method</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase">Action</th>
+                {[
+                  "Transaction ID",
+                  "Customer Name",
+                  "Email",
+                  "Amount",
+                  "Date",
+                  "Status",
+                  "Method",
+                  "Action",
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className="px-6 py-3 text-left text-sm font-medium text-[#000000] uppercase"
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#B9B9B9]">
-              {payments.map((payment, index) => (
-                <tr key={payment._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.transactionId}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.userId?.name}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment?.userId?.email}</td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">${payment?.amount}</td>
+              {payments.map((payment: Payment, index: number) => (
+                <tr
+                  key={payment._id}
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  <td className="px-6 py-4 text-sm text-[#000000]">
+                    {payment.transactionId}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">
+                    {payment.userId?.name}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">
+                    {payment.userId?.email}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">
+                    ${payment.amount.toFixed(2)}
+                  </td>
                   <td className="px-6 py-4 text-sm text-[#000000]">
                     {format(new Date(payment.createdAt), "yyyy-MM-dd")}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      payment.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                      payment.paymentStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                      payment.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        payment.paymentStatus === "completed" ||
+                        payment.paymentStatus === "complete"
+                          ? "bg-green-100 text-green-800"
+                          : payment.paymentStatus === "failed"
+                          ? "bg-red-100 text-red-800"
+                          : payment.paymentStatus === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
                       {payment.paymentStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#000000]">{payment.paymentMethod}</td>
+                  <td className="px-6 py-4 text-sm text-[#000000]">
+                    {payment.paymentMethod}
+                  </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => downloadReceipt({
-                        ...payment,
-                        planId: payment.planId || { _id: 'N/A', title: 'N/A' }
-                      })}
+                      onClick={() => downloadReceipt(payment)}
                       className="text-blue-600 hover:text-blue-800 cursor-pointer"
                       title="Download Receipt"
                     >
@@ -185,6 +232,36 @@ export default function PaymentDetailsPage() {
           </table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {meta && (
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="text-sm text-gray-600">
+            Page {meta.currentPage} of {meta.totalPages} — Total{" "}
+            {meta.totalItems} payments
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || isFetching}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setPage((p) => Math.min(meta.totalPages || 1, p + 1))
+              }
+              disabled={page === meta.totalPages || isFetching}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

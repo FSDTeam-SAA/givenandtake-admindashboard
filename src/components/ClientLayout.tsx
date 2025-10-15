@@ -8,7 +8,6 @@ import {
   FileText,
   List,
   Settings,
-  Users,
   CreditCard,
   LogOut,
   X,
@@ -39,7 +38,6 @@ const menuItems = [
   { title: "Set Job Category", icon: Settings, href: "/job-categories" },
   { title: "Add Skills", icon: Settings, href: "/skills" },
   { title: "Job Post List", icon: List, href: "/job-posts" },
-  { title: "Subscriber", icon: Users, href: "/subscriber" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
   { title: "Blog", icon: CreditCard, href: "/blog" },
   { title: "Plan", icon: CreditCard, href: "/plan" },
@@ -65,7 +63,6 @@ export default function ClientLayout({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const session = useSession();
   const token = session.data?.user?.accessToken;
-  const superAdmin = session.data?.user?.role === "super-admin";
   const admin = session.data?.user?.role === "admin";
 
   // Fetch user data using TanStack Query
@@ -151,7 +148,7 @@ export default function ClientLayout({
   const filteredMenuItems = admin
     ? menuItems.filter(
         (item) =>
-          !["Subscriber", "Payment Details", "Plan", "Users"].includes(
+          ![ "Payment Details", "Plan"].includes(
             item.title
           )
       )

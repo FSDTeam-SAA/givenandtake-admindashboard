@@ -246,7 +246,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
   let postedByLocation = "N/A";
 
   if (job.recruiterId) {
-    postedByName = `${job.recruiterId.firstName} ${job.recruiterId.lastName}`;
+    postedByName = `${job.recruiterId.firstName} ${job.recruiterId.sureName}`;
     postedByEmail = job.recruiterId.emailAddress;
     postedByLogo = job.recruiterId.photo || "/default-logo.png";
     postedByLocation = `${job.recruiterId.city || "N/A"}, ${
@@ -287,7 +287,6 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
                 <p className="text-sm text-gray-500">
                   {job.recruiterId.title || "N/A"}
                 </p>
-                <p className="text-sm">{job.recruiterId.sureName || "N/A"}</p>
               </>
             ) : (
               <>

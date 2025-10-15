@@ -30,24 +30,52 @@ interface BlogPost {
   tags?: string[];
 }
 
-const fetchBlogs = async (token: string): Promise<BlogPost[]> => {
+interface BlogsApiResponse {
+  blogs: BlogPost[];
+  meta: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
+}
+
+// ✅ Fetch blogs with pagination
+const fetchBlogs = async ({
+  token,
+  page,
+  limit,
+}: {
+  token: string;
+  page: number;
+  limit: number;
+}): Promise<BlogsApiResponse> => {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/blogs/get-all`,
+    `${process.env.NEXT_PUBLIC_BASE_URL}/blogs/get-all?page=${page}&limit=${limit}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
+
   const result = await response.json();
-  console.log("Blog Posts API Response:", result); // Debug log
   if (!result.success) {
     throw new Error(result.message || "Failed to fetch blogs");
   }
-  // Extract blogs array from result.data.blogs and ensure it's an array
-  return Array.isArray(result.data.blogs) ? result.data.blogs : [];
+
+  const blogs: BlogPost[] = Array.isArray(result.data.blogs)
+    ? result.data.blogs
+    : [];
+  const meta = result.data.meta || {
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: blogs.length,
+    itemsPerPage: limit,
+  };
+
+  return { blogs, meta };
 };
 
+// ✅ Delete blog
 const deleteBlog = async ({
   blogId,
   token,
@@ -59,11 +87,10 @@ const deleteBlog = async ({
     `${process.env.NEXT_PUBLIC_BASE_URL}/blogs/${blogId}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
+
   const result = await response.json();
   if (!result.success) {
     throw new Error(result.message || "Failed to delete blog");
@@ -75,24 +102,35 @@ export default function BlogPostList() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [blogIdToDelete, setBlogIdToDelete] = useState<string | null>(null);
   const [editBlog, setEditBlog] = useState<BlogPost | null>(null);
+
+  // ✅ Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 6;
+
   const queryClient = useQueryClient();
   const { status, data: sessionData } = useSession();
   const token = sessionData?.user?.accessToken || "";
 
+  // ✅ React Query (React Query v5 syntax)
   const {
-    data: blogPosts,
+    data,
     isLoading,
     error,
-  } = useQuery<BlogPost[], Error>({
-    queryKey: ["blogs"],
-    queryFn: () => fetchBlogs(token),
+  } = useQuery<BlogsApiResponse, Error>({
+    queryKey: ["blogs", currentPage],
+    queryFn: () => fetchBlogs({ token, page: currentPage, limit: itemsPerPage }),
     enabled: !!token,
+    placeholderData: (prev) => prev, // ✅ replaces keepPreviousData
   });
 
+  const blogs = data?.blogs ?? [];
+  const totalPages = data?.meta?.totalPages ?? 1;
+
+  // ✅ Delete mutation
   const deleteMutation = useMutation({
     mutationFn: deleteBlog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blogs"] });
+      queryClient.invalidateQueries({ queryKey: ["blogs", currentPage] });
       toast.success("Blog deleted successfully");
       setIsDeleteModalOpen(false);
       setBlogIdToDelete(null);
@@ -102,20 +140,17 @@ export default function BlogPostList() {
     },
   });
 
-  // Function to handle blog addition or update in cache
+  // ✅ Handle add/update
   const handleBlogUpdate = (newOrUpdatedBlog: BlogPost, isUpdate: boolean) => {
-    queryClient.setQueryData<BlogPost[]>(["blogs"], (oldData) => {
-      if (!oldData) return [newOrUpdatedBlog];
-      if (isUpdate) {
-        return oldData.map((blog) =>
-          blog._id === newOrUpdatedBlog._id ? newOrUpdatedBlog : blog
-        );
-      }
-      return [newOrUpdatedBlog, ...oldData];
-    });
+    queryClient.invalidateQueries({ queryKey: ["blogs", currentPage] });
     setShowAddBlog(false);
     setEditBlog(null);
     toast.success(`Blog ${isUpdate ? "updated" : "added"} successfully`);
+  };
+
+  // ✅ Page change handler
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   if (status === "loading") {
@@ -134,6 +169,7 @@ export default function BlogPostList() {
     <div className="min-h-screen bg-gray-50">
       {!showAddBlog ? (
         <>
+          {/* Header */}
           <header className="bg-[#DFFAFF] rounded-[8px] py-4 px-6 md:px-8 lg:px-12 flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-[40px] font-bold text-[#44B6CA] py-[25px]">
               All Blogs
@@ -149,12 +185,14 @@ export default function BlogPostList() {
               Add Blog
             </Button>
           </header>
+
+          {/* Blog List */}
           <main className="container mx-auto p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[15px]">
               {isLoading ? (
                 Array(6)
                   .fill(0)
-                  .map((_, index) => (
+                  .map((_, index: number) => (
                     <Card
                       key={index}
                       className="overflow-hidden border-none shadow-none p-0 mt-10"
@@ -179,8 +217,8 @@ export default function BlogPostList() {
                       </CardContent>
                     </Card>
                   ))
-              ) : Array.isArray(blogPosts) && blogPosts.length > 0 ? (
-                blogPosts.map((post) => (
+              ) : blogs.length > 0 ? (
+                blogs.map((post: BlogPost) => (
                   <Card
                     key={post._id}
                     className="overflow-hidden border-none shadow-none p-0 mt-10"
@@ -212,7 +250,6 @@ export default function BlogPostList() {
                             }}
                           >
                             <Edit className="w-4 h-4" />
-                            <span className="sr-only">Edit</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -224,7 +261,6 @@ export default function BlogPostList() {
                             }}
                           >
                             <Trash2 className="w-4 h-4 text-[#C82121]" />
-                            <span className="sr-only">Delete</span>
                           </Button>
                         </div>
                       </div>
@@ -237,7 +273,7 @@ export default function BlogPostList() {
                       />
                       {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {post.tags.map((tag, index) => (
+                          {post.tags.map((tag: string, index: number) => (
                             <span
                               key={index}
                               className="px-2 py-1 text-[#44B6CA] text-xs rounded-full"
@@ -256,7 +292,41 @@ export default function BlogPostList() {
                 </div>
               )}
             </div>
+
+            {/* ✅ Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+                {Array.from({ length: totalPages }, (_, i: number) => (
+                  <Button
+                    key={i}
+                    variant={currentPage === i + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(i + 1)}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </main>
+
+          {/* Delete Modal */}
           <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
             <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none">
               <DialogHeader>
@@ -264,14 +334,13 @@ export default function BlogPostList() {
                   Confirm Deletion
                 </DialogTitle>
                 <DialogDescription className="text-[#595959]">
-                  Are you sure you want to delete this blog post? This action
-                  cannot be undone.
+                  Are you sure you want to delete this blog post? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="mt-4">
                 <Button
                   variant="outline"
-                  className="border-[#44B6CA] text-[#44B6CA] cursor-pointer"
+                  className="border-[#44B6CA] text-[#44B6CA]"
                   onClick={() => {
                     setIsDeleteModalOpen(false);
                     setBlogIdToDelete(null);
@@ -280,7 +349,7 @@ export default function BlogPostList() {
                   Cancel
                 </Button>
                 <Button
-                  className="text-white hover:bg-opacity-90 cursor-pointer"
+                  className="text-white hover:bg-opacity-90"
                   onClick={() =>
                     blogIdToDelete &&
                     deleteMutation.mutate({ blogId: blogIdToDelete, token })
