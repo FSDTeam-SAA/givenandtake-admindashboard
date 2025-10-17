@@ -328,6 +328,8 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               </p>
               <p className="text-base font-bold text-black">Ordered:</p>
               <p className="text-sm">{formatDate(job.createdAt)}</p>
+              <p className="text-base font-bold text-black">Published:</p>
+              <p className="text-sm">{formatDate(job.publishDate)}</p>
               <p className="text-base font-bold text-black">Expiry:</p>
               <p className="text-sm">{formatDate(job.deadline)}</p>
             </div>
@@ -373,7 +375,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           >
             {updateMutation.isPending ? "Updating..." : "Approve"}
           </Button>
-          <Button onClick={onBack} className="px-6 py-2">
+          <Button onClick={onBack} className="px-6 py-2 text-white">
             Back to List
           </Button>
         </div>

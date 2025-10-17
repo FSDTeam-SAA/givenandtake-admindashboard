@@ -30,6 +30,7 @@ interface Job {
   companyId?: Company
   createdAt: string
   status: string
+  adminApprove?: boolean
 }
 
 interface ApiResponse {
@@ -206,7 +207,7 @@ export default function JobPostsPage() {
           <table className="w-full table-auto" aria-labelledby="job-posts-table">
             <thead>
               <tr>
-                {["Job Title", "Posted By Name", "Posted By Email", "Posted Date", "Details"].map((header) => (
+                {["Job Title", "Posted By Name", "Posted By Email", "Posted Date", "Approval Status", "Details"].map((header) => (
                   <th
                     key={header}
                     scope="col"
@@ -222,16 +223,20 @@ export default function JobPostsPage() {
                 let postedByName = "Unknown"
                 let postedByEmail = "N/A"
                 let postedByData = null
+                let approvalStatus = false
 
                 if (job.recruiterId) {
                   postedByName = `${job.recruiterId.firstName} ${job.recruiterId.sureName}`
                   postedByEmail = job.recruiterId.emailAddress
                   postedByData = { recruiterId: job.recruiterId }
+                  approvalStatus = job?.adminApprove as boolean
                 } else if (job.companyId) {
                   postedByName = job.companyId.cname || "Unknown Company"
                   postedByEmail = job.companyId.cemail || "N/A"
                   postedByData = { companyId: job.companyId }
+                  approvalStatus = job?.adminApprove as boolean
                 }
+                
 
                 return (
                   <tr key={job._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
@@ -243,6 +248,15 @@ export default function JobPostsPage() {
                       {postedByEmail}
                     </td>
                     <td className="px-6 py-4 text-base font-normal text-gray-600">{formatDate(job.createdAt)}</td>
+                    <td className="px-6 py-4 text-base font-normal">
+  {job.adminApprove ? (
+    <span className="text-green-600 font-semibold">Approved</span>
+  ) : (
+    <span className="text-red-500 font-semibold">Pending</span>
+  )}
+</td>
+
+
                     <td className="px-6 py-4">
                       <Button
                         size="sm"
