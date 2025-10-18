@@ -60,6 +60,7 @@ interface JobDetail {
   recruiterId?: Recruiter;
   title: string;
   description: string;
+  location_Type: string;
   salaryRange: string;
   location: string;
   shift: string;
@@ -314,6 +315,14 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               <p className="text-sm">{job.name}</p>
               <p className="text-base font-bold text-black">Salary:</p>
               <p className="text-sm">{job.salaryRange}</p>
+              <p className="text-base font-bold text-black">location_Type:</p>
+              <p className="text-sm">
+                {job.location_Type
+                  ? job.location_Type.charAt(0).toUpperCase() +
+                    job.location_Type.slice(1)
+                  : ""}
+              </p>
+
               <p className="text-base font-bold text-black">Vacancy:</p>
               <p className="text-sm">{job.vacancy}</p>
               <p className="text-base font-bold text-black">Experience:</p>
@@ -388,8 +397,8 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
             <DialogTitle className="text-red-600">Delete Job</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete the job &quot;
-              <strong>{job.title}</strong>&quot;? This action cannot be undone and
-              all associated data will be permanently removed.
+              <strong>{job.title}</strong>&quot;? This action cannot be undone
+              and all associated data will be permanently removed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-end">

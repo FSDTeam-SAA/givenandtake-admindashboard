@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import TextEditor from "@/components/TextEditor";
+import QuillEditor from "@/components/TextEditor";
 
 interface BlogPost {
   _id: string;
@@ -175,11 +176,9 @@ export default function AddBlogForm({
             >
               Blog Content
             </Label>
-            <TextEditor
+            <QuillEditor
               value={content}
               onChange={setContent}
-              placeholder="Write your blog content here..."
-              className="border-[#E5E7EB]"
             />
           </div>
 
