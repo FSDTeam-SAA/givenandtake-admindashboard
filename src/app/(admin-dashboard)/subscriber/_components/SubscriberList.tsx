@@ -129,7 +129,7 @@ export default function SubscriberList({ onBack }: SubscriberListProps) {
                     ID
                   </th>
                   <th className="px-6 py-3 text-left text-base font-medium text-[#595959] uppercase">
-                    Subscriber Mail
+                    Subscriber Email
                   </th>
                   <th className="px-6 py-3 text-center text-base font-medium text-[#595959] uppercase">
                     Action

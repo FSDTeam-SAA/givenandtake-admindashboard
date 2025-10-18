@@ -148,13 +148,13 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-          {/* Total Companyes Card */}
+          {/* Total Companies Card */}
           <Card className="bg-[#44B6CA] text-white border-none">
             <CardContent className="p-6">
               <div className="flex items-center gap-x-[20px]">
                 <UserCheck className="h-[70px] w-[70px] text-white" />
                 <div>
-                  <p className="text-xl text-white font-medium">Total Companyes</p>
+                  <p className="text-xl text-white font-medium">Total Companies</p>
                   <p className="text-[40px] text-white font-bold">{stats?.totalCompany || 0}</p>
                 </div>
               </div>

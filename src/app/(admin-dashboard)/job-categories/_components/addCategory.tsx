@@ -75,7 +75,7 @@ const CategoryForm = ({ onSubmit, onCancel, isPending }: CategoryFormProps) => {
             </label>
             <Input
               id="category-name"
-              placeholder="Input name..."
+              placeholder="Enter category name..."
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
               className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"

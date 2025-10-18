@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
               <h3 className="text-lg font-semibold text-[#444444]">
-                Enter your Personal Information
+                Enter your personal information
               </h3>
               <div className="grid gap-2 mt-[30px]">
                 <Label
@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="Write your email"
+                  placeholder="Enter your email"
                   className={`h-[52px] rounded-[8px] pl-2 border ${
                     emailError ? "border-red-500" : "border-[#9E9E9E]"
                   } outline-none`}

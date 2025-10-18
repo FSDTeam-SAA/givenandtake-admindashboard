@@ -148,7 +148,7 @@ export default function SendEmailPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Send mail to the subscribers</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Send email to subscribers</h1>
         <Button className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white h-[44px] cursor-pointer" onClick={() => setShowSubscriberList(true)}>
           See Subscriber List
         </Button>

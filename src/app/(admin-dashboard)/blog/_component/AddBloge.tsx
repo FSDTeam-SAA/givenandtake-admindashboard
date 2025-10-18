@@ -87,7 +87,7 @@ export default function AddBlogForm({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size exceeds 10MB limit");
+        toast.error("File size exceeds the 10 MB limit");
         return;
       }
       if (imagePreview && !editBlog?.image) {
@@ -161,7 +161,7 @@ export default function AddBlogForm({
             </Label>
             <Input
               id="blog-title"
-              placeholder="Input name....."
+              placeholder="Enter blog title"
               className="border-[#DFFAFF] bg-white text-[#595959] placeholder:text-[#595959] focus:ring-[#44B6CA] focus:border-[#44B6CA]"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -186,7 +186,7 @@ export default function AddBlogForm({
               htmlFor="upload-photo"
               className="text-base font-semibold text-[#595959]"
             >
-              Upload Photo
+              Upload Image
             </Label>
             <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-[#DFFAFF] rounded-lg bg-[#DFFAFF] min-h-[180px] relative">
               {imagePreview ? (
@@ -205,13 +205,13 @@ export default function AddBlogForm({
                     onClick={handleRemoveImage}
                   >
                     <X className="w-4 h-4" />
-                    <span className="sr-only">Remove Image</span>
+                    <span className="sr-only">Remove image</span>
                   </Button>
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-[#595959] mb-4">
-                    10.0 MB maximum file size
+                    Maximum file size: 10 MB
                   </p>
                   <Button
                     variant="outline"

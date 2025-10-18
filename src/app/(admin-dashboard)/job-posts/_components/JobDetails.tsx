@@ -315,7 +315,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               <p className="text-sm">{job.name}</p>
               <p className="text-base font-bold text-black">Salary:</p>
               <p className="text-sm">{job.salaryRange}</p>
-              <p className="text-base font-bold text-black">location_Type:</p>
+              <p className="text-base font-bold text-black">Location Type:</p>
               <p className="text-sm">
                 {job.location_Type
                   ? job.location_Type.charAt(0).toUpperCase() +
@@ -335,11 +335,11 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               <p className="text-sm">
                 {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
               </p>
-              <p className="text-base font-bold text-black">Ordered:</p>
+              <p className="text-base font-bold text-black">Created:</p>
               <p className="text-sm">{formatDate(job.createdAt)}</p>
               <p className="text-base font-bold text-black">Published:</p>
               <p className="text-sm">{formatDate(job.publishDate)}</p>
-              <p className="text-base font-bold text-black">Expiry:</p>
+              <p className="text-base font-bold text-black">Expires:</p>
               <p className="text-sm">{formatDate(job.deadline)}</p>
             </div>
           </div>
