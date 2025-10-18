@@ -42,6 +42,7 @@ const menuItems = [
   { title: "Blog", icon: CreditCard, href: "/blog" },
   { title: "Plan", icon: CreditCard, href: "/plan" },
   { title: "Users", icon: User, href: "/users" },
+  { title: "Contents", icon: User, href: "/contents" },
 ];
 
 export default function ClientLayout({

@@ -10,7 +10,6 @@ import { useSession } from "next-auth/react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import TextEditor from "@/components/TextEditor";
 import QuillEditor from "@/components/TextEditor";
 
 interface BlogPost {
