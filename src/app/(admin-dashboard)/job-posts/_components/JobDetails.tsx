@@ -335,7 +335,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               <p className="text-sm">
                 {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
               </p>
-              <p className="text-base font-bold text-black">Created:</p>
+              <p className="text-base font-bold text-black">Ordered:</p>
               <p className="text-sm">{formatDate(job.createdAt)}</p>
               <p className="text-base font-bold text-black">Published:</p>
               <p className="text-sm">{formatDate(job.publishDate)}</p>
