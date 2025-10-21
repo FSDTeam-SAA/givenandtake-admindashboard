@@ -250,9 +250,8 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     postedByName = `${job.recruiterId.firstName} ${job.recruiterId.sureName}`;
     postedByEmail = job.recruiterId.emailAddress;
     postedByLogo = job.recruiterId.photo || "/default-logo.png";
-    postedByLocation = `${job.recruiterId.city || "N/A"}, ${
-      job.recruiterId.country || "N/A"
-    } (${job.recruiterId.zipCode || "N/A"})`;
+    postedByLocation = `${job.recruiterId.city || "N/A"}, ${job.recruiterId.country || "N/A"
+      } (${job.recruiterId.zipCode || "N/A"})`;
     postedByData = { recruiterId: job.recruiterId };
   } else if (job.companyId) {
     postedByName = job.companyId.cname || "Unknown Company";
@@ -260,9 +259,8 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     postedByLogo = job.companyId.clogo || "/default-logo.png";
     postedByIndustry = job.companyId.industry || "N/A";
     postedByServices = job.companyId.service?.join(", ") || "N/A";
-    postedByLocation = `${job.companyId.city || "N/A"}, ${
-      job.companyId.country || "N/A"
-    } (${job.companyId.zipcode || "N/A"})`;
+    postedByLocation = `${job.companyId.city || "N/A"}, ${job.companyId.country || "N/A"
+      } (${job.companyId.zipcode || "N/A"})`;
     postedByData = { companyId: job.companyId };
   }
 
@@ -319,7 +317,7 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               <p className="text-sm">
                 {job.location_Type
                   ? job.location_Type.charAt(0).toUpperCase() +
-                    job.location_Type.slice(1)
+                  job.location_Type.slice(1)
                   : ""}
               </p>
 
@@ -366,14 +364,15 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           </Button>
           <Button
             variant="outline"
-            className="px-6 py-2 text-gray-600 border-gray-300 hover:bg-gray-100"
-            onClick={() =>
-              updateMutation.mutate({ id: jobId, adminApprove: false })
-            }
-            disabled={updateMutation.isPending || job.adminApprove === false}
+            className={`px-6 py-2 border-gray-300 hover:bg-gray-100
+    ${job.adminApprove === false ? "bg-red-100 text-red-600 border-red-300" : "text-gray-600"}
+  `}
+            onClick={() => updateMutation.mutate({ id: jobId, adminApprove: false })}
+            disabled={updateMutation.isPending}
           >
             {updateMutation.isPending ? "Updating..." : "Deny"}
           </Button>
+
           <Button
             size="sm"
             className="text-white w-[102px] cursor-pointer"
