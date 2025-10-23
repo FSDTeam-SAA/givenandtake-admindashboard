@@ -39,7 +39,7 @@ const menuItems = [
   { title: "Add Skills", icon: Settings, href: "/skills" },
   { title: "Job Post List", icon: List, href: "/job-posts" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
-  { title: "Blog", icon: CreditCard, href: "/blog" },
+  { title: "Blogs", icon: CreditCard, href: "/blog" },
   { title: "Plan", icon: CreditCard, href: "/plan" },
   { title: "Users", icon: User, href: "/users" },
   { title: "Contents", icon: User, href: "/contents" },
