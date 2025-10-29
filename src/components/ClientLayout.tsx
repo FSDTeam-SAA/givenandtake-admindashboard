@@ -149,7 +149,7 @@ export default function ClientLayout({
   const filteredMenuItems = admin
     ? menuItems.filter(
         (item) =>
-          ![ "Payment Details", "Plan"].includes(
+          ![ "Payment Details", "Plan", "Contents"].includes(
             item.title
           )
       )
