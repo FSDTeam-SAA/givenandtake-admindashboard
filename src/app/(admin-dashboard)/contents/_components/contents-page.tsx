@@ -46,7 +46,7 @@ const ContentsPage: React.FC = () => {
           `${process.env.NEXT_PUBLIC_BASE_URL}/content/${selectedType}`
         );
         if (res.data) {
-          setContent(res.data);
+          setContent(res.data.data);
         } else {
           setContent({ type: selectedType, title: "", description: "" });
         }

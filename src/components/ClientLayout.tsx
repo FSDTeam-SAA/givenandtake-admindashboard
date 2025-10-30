@@ -26,6 +26,15 @@ import {
   SidebarMenuItem,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -148,10 +157,7 @@ export default function ClientLayout({
   // Filter menu items based on user role
   const filteredMenuItems = admin
     ? menuItems.filter(
-        (item) =>
-          ![ "Payment Details", "Plan", "Contents"].includes(
-            item.title
-          )
+        (item) => !["Payment Details", "Plan", "Contents"].includes(item.title)
       )
     : menuItems;
 
@@ -206,18 +212,48 @@ export default function ClientLayout({
               <span className="text-sm">
                 {isLoading ? "Loading..." : userData?.data?.name || "User"}
               </span>
-              <Avatar
-                className="h-8 w-8 cursor-pointer"
-                onClick={() => setShowChangePasswordModal(true)}
-              >
-                <AvatarImage
-                  src={userData?.data?.avatar?.url}
-                  alt={userData?.data?.name}
-                />
-                <AvatarFallback className="bg-white text-cyan-500">
-                  {getInitials(userData?.data?.name)}
-                </AvatarFallback>
-              </Avatar>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    aria-label="Open user menu"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={userData?.data?.avatar?.url}
+                        alt={userData?.data?.name || "User avatar"}
+                      />
+                      <AvatarFallback className="bg-white text-cyan-500">
+                        {getInitials(userData?.data?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-56 bg-white border-0 shadow-lg"
+                >
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() => setShowChangePasswordModal(true)}
+                  >
+                    Change Password
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-700"
+                    onClick={() => setShowLogoutModal(true)}
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           <main className="flex-1 p-6">{children}</main>
