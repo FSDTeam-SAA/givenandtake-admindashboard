@@ -50,7 +50,7 @@ type UpsertPayload = {
   category?: string;
 };
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/faqs`; // ← adjust if needed
+const API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/faqs`; // ← adjust if needed
 
 /** ===== API calls (typed) ===== */
 const fetchFaqs = async (): Promise<Faq[]> => {
