@@ -31,7 +31,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
@@ -52,6 +51,8 @@ const menuItems = [
   { title: "Plan", icon: CreditCard, href: "/plan" },
   { title: "Users", icon: User, href: "/users" },
   { title: "Contents", icon: User, href: "/contents" },
+  { title: "FAQ", icon: User, href: "/faq" },
+  { title: "ChatbotQA", icon: User, href: "/chatbot" },
 ];
 
 export default function ClientLayout({
