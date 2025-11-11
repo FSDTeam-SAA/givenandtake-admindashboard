@@ -1,9 +1,10 @@
 "use client";
 
-import type React from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Edit, Trash2, Plus, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Settings, Edit, Trash2, Plus, Eye, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -63,21 +64,51 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
   totalPages,
   onPageChange,
 }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter plans by title, description, or "for" field
+  const filteredPlans = useMemo(() => {
+    if (!plans) return [];
+    const lower = searchTerm.toLowerCase().trim();
+    if (!lower) return plans;
+
+    return plans.filter(
+      (plan) =>
+        plan.title.toLowerCase().includes(lower) ||
+        plan.description.toLowerCase().includes(lower) ||
+        plan.for.toLowerCase().includes(lower)
+    );
+  }, [plans, searchTerm]);
+
   return (
     <Card className="border-none shadow-none">
       <CardHeader className="bg-[#DFFAFF] rounded-[8px]">
-        <CardTitle className="flex items-center justify-between py-[25px]">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-[25px] gap-4">
           <div className="flex items-center gap-2 text-[40px] font-bold text-[#44B6CA]">
             <Settings className="h-[32px] w-[32px]" />
             Subscription Plans List
           </div>
-          <Button
-            onClick={onAddPlan}
-            className="bg-[#44B6CA] hover:bg-[#3A9FB0] text-white cursor-pointer"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Plan
-          </Button>
+
+          {/* Search + Add button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder='Search plans (e.g. "Premium", "company")...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+            <Button
+              onClick={onAddPlan}
+              className="bg-[#44B6CA] hover:bg-[#3A9FB0] text-white cursor-pointer"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Plan
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
 
@@ -115,8 +146,8 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                   Error loading plans
                 </TableCell>
               </TableRow>
-            ) : plans && plans.length > 0 ? (
-              plans.map((plan) => (
+            ) : filteredPlans.length > 0 ? (
+              filteredPlans.map((plan) => (
                 <TableRow key={plan._id} className="bg-white hover:bg-gray-50">
                   <TableCell className="truncate max-w-[200px]">{plan.title}</TableCell>
                   <TableCell className="truncate max-w-[200px]">{plan.description}</TableCell>
