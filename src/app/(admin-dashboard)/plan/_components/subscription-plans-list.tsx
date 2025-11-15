@@ -13,19 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Plan } from "@/lib/plans";
 
-export interface Plan {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  features: string[];
-  for: "candidate" | "company" | "recruiter";
-  valid: "monthly" | "yearly" | "PayAsYouGo";
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-}
+
 
 interface SubscriptionPlansListProps {
   plans: Plan[] | undefined;

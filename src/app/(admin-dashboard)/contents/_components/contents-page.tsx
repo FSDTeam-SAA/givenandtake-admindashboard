@@ -68,7 +68,7 @@ const ContentsPage: React.FC = () => {
     try {
       await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/content`, content);
       setMessage("✅ Content saved successfully!");
-    } catch (error) {
+    } catch {
       setMessage("❌ Failed to save content");
     } finally {
       setLoading(false);

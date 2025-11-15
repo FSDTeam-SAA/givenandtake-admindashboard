@@ -1,11 +1,12 @@
 "use client";
 
 import type React from "react";
+import { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Plus, X } from "lucide-react";
+import { ChevronLeft, Plus, X, Palette } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,10 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Plan } from "./subscription-plans-list";
+import { Plan } from "@/lib/plans";
 
 interface PlanFormData {
   title: string;
+  titleColor: string;
   description: string;
   price: string;
   features: string[];
@@ -50,35 +52,94 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
   onSubmit,
   onCancel,
 }) => {
+  const colorInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleColorIconClick = () => {
+    colorInputRef.current?.click();
+  };
+
+  const displayedColor = formData.titleColor || "#44B6CA";
+
   return (
     <Card className="border-none shadow-none">
       <CardHeader className="bg-[#DFFAFF] rounded-[8px]">
-        <CardTitle className="flex items-center gap-2 text-[40px] font-bold text-[#44B6CA] py-[25px]">
+        <CardTitle
+          className="flex items-center gap-2 text-[40px] font-bold py-[25px]"
+          style={{ color: displayedColor }} // 👈 use titleColor here
+        >
           <Button
             variant="ghost"
             size="sm"
             onClick={onCancel}
             className="p-0 h-auto hover:bg-transparent cursor-pointer"
           >
-            <ChevronLeft className="h-[32px] w-[32px] text-[#44B6CA]" />
+            <ChevronLeft
+              className="h-[32px] w-[32px]"
+              style={{ color: displayedColor }} // 👈 match icon color too (optional)
+            />
           </Button>
           {editPlan ? "Edit Subscription Plan" : "Add Subscription Plan"}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-8 bg-[#DFFAFF] rounded-b-[8px]">
         <div className="space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-[#595959] mb-2">
-              Plan Title
-            </label>
-            <Input
-              placeholder="Input title..."
-              name="title"
-              value={formData.title}
-              onChange={onInputChange}
-              className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
-            />
+          {/* Title + Color Picker */}
+          <div className="flex items-end gap-6">
+            {/* Title */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Plan Title
+              </label>
+              <Input
+                placeholder="Input title..."
+                name="title"
+                value={formData.title}
+                onChange={onInputChange}
+                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+              />
+            </div>
+
+            {/* Title Color Picker */}
+            <div className="flex flex-col items-center gap-2 w-[150px]">
+              <span className="block text-sm font-medium text-[#595959]">
+                Title Color
+              </span>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleColorIconClick}
+                className="cursor-pointer hover:bg-[#44B6CA]/10 border border-[#44B6CA]/30 rounded-full"
+              >
+                <Palette className="h-5 w-5 text-[#44B6CA]" />
+                <span className="sr-only">Pick title color</span>
+              </Button>
+
+              {/* Circle + Code in one row */}
+              <div className="flex items-center gap-2 mt-1">
+                {/* Color preview circle */}
+                <div
+                  className="h-6 w-6 rounded-full border border-gray-300 shadow-sm"
+                  style={{ backgroundColor: displayedColor }}
+                />
+
+                {/* Color code display */}
+                <span className="text-xs font-mono text-[#595959] bg-white px-2 py-[2px] rounded border border-gray-200">
+                  {displayedColor.toUpperCase()}
+                </span>
+              </div>
+
+              {/* Native color input – small and neat */}
+              <Input
+                ref={colorInputRef}
+                type="color"
+                name="titleColor"
+                value={displayedColor}
+                onChange={onInputChange}
+                className="mt-1 h-8 w-12 p-0 border border-gray-300 rounded cursor-pointer bg-transparent"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-6 gap-4">

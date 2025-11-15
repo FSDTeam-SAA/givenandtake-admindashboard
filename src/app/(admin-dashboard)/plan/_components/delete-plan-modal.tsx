@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Plan } from "./subscription-plans-list";
+import { Plan } from "@/lib/plans";
 
 interface DeletePlanModalProps {
   isOpen: boolean;

@@ -6,16 +6,16 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import SubscriptionPlansList from "./subscription-plans-list";
 import SubscriptionPlanForm from "./subscription-plan-form";
-import type { Plan } from "@/lib/plans";
 import PlanDetailsModal from "./plan-details-modal";
 import DeletePlanModal from "./delete-plan-modal";
 import QueryProvider from "./query-client-provider";
-import { fetchPlans, createPlan, updatePlan, deletePlan } from "@/lib/plans";
+import { fetchPlans, createPlan, updatePlan, deletePlan, Plan } from "@/lib/plans";
 import { useSession } from "next-auth/react";
 
 // Form data interface
 export interface PlanFormData {
   title: string;
+  titleColor: string; // 👈 added
   description: string;
   price: string;
   features: string[];
@@ -30,6 +30,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<PlanFormData>({
     title: "",
+    titleColor: "#44B6CA", // 👈 default color
     description: "",
     price: "",
     features: [""],
@@ -190,6 +191,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
 
     const planData: Omit<Plan, "_id" | "createdAt" | "updatedAt" | "__v"> = {
       title: formData.title,
+      titleColor: formData.titleColor, // 👈 include in payload
       description: formData.description,
       price: Number.parseFloat(formData.price),
       features: formData.features.filter((f) => f.trim() !== ""),
@@ -207,6 +209,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
   const resetForm = () => {
     setFormData({
       title: "",
+      titleColor: "#44B6CA", // 👈 reset to default
       description: "",
       price: "",
       features: [""],
@@ -225,6 +228,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
     setEditPlan(plan);
     setFormData({
       title: plan.title,
+      titleColor: plan.titleColor || "#44B6CA", // 👈 pull from plan (fallback)
       description: plan.description,
       price: plan.price.toString(),
       features: plan.features.length > 0 ? plan.features : [""],

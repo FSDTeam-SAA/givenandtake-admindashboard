@@ -74,7 +74,7 @@ export default function ChatbotManager() {
 
       const data = await response.json();
       setQaList(data.data || []);
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Failed to load Q&A list" });
     } finally {
       setLoading(false);
@@ -164,7 +164,7 @@ export default function ChatbotManager() {
 
       setMessage({ type: "success", text: "Q&A deleted successfully" });
       await fetchQAList();
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Failed to delete Q&A" });
     }
   };
@@ -187,7 +187,7 @@ export default function ChatbotManager() {
       });
 
       await fetchQAList();
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Failed to update status" });
     }
   };
@@ -210,7 +210,7 @@ export default function ChatbotManager() {
         type: "success",
         text: "Knowledge base rebuilt successfully",
       });
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Failed to rebuild knowledge base" });
     } finally {
       setSubmitting(false);

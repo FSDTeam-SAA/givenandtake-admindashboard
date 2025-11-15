@@ -2,6 +2,7 @@
 export interface Plan {
   _id: string
   title: string
+  titleColor: string
   description: string
   price: number
   features: string[]
@@ -11,6 +12,7 @@ export interface Plan {
   updatedAt: string
   __v: number
 }
+
 
 export interface ApiResponse {
   success: boolean

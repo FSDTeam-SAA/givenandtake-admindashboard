@@ -4,7 +4,7 @@ import type React from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { Plan } from "./subscription-plans-list"
+import { Plan } from "@/lib/plans"
 
 interface PlanDetailsModalProps {
   planId: string

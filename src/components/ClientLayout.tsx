@@ -144,7 +144,7 @@ export default function ClientLayout({
       setNewPassword("");
       setConfirmPassword("");
       setTimeout(() => setShowChangePasswordModal(false), 1500);
-    } catch (error) {
+    } catch{
       setError("An error occurred while changing the password");
     }
   };
