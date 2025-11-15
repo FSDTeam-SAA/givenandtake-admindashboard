@@ -22,6 +22,7 @@ interface BlogPost {
   updatedAt: string;
   __v: number;
   tags?: string[];
+  authorName?: string; // 🔹 NEW
 }
 
 interface AddBlogFormProps {
@@ -35,16 +36,19 @@ export default function AddBlogForm({
   editBlog,
   onUpdate,
 }: AddBlogFormProps) {
+  const session = useSession();
+  const userId = session.data?.user?._id;
+  const token = session.data?.user?.accessToken;
+  const defaultAuthorName = editBlog?.authorName ?? "";
+
   const [title, setTitle] = useState(editBlog?.title || "");
+  const [authorName, setAuthorName] = useState<string>(defaultAuthorName); // 🔹 NEW
   const [content, setContent] = useState(editBlog?.description || "");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
     editBlog?.image || null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const session = useSession();
-  const userId = session.data?.user?._id;
-  const token = session.data?.user?.accessToken;
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -71,12 +75,13 @@ export default function AddBlogForm({
         onUpdate(data.data);
       } else {
         setTitle("");
+        setAuthorName(""); // 🔹 reset
         setContent("");
         handleRemoveImage();
         onBack();
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(
         error.message || `Failed to ${editBlog ? "update" : "post"} blog`
       );
@@ -115,6 +120,11 @@ export default function AddBlogForm({
       return;
     }
 
+    if (!authorName.trim()) {
+      toast.error("Please enter author name"); // 🔹 NEW validation
+      return;
+    }
+
     if (!content || content === "<p><br></p>") {
       toast.error("Please enter blog content");
       return;
@@ -123,6 +133,7 @@ export default function AddBlogForm({
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", content);
+    formData.append("authorName", authorName); // 🔹 NEW in payload
     if (selectedImage) {
       formData.append("image", selectedImage);
     }
@@ -152,6 +163,7 @@ export default function AddBlogForm({
 
       <main className="container mx-auto mt-8">
         <div className="grid gap-6">
+          {/* Title */}
           <div className="grid gap-2 bg-[#DFFAFF] p-3">
             <Label
               htmlFor="blog-title"
@@ -168,6 +180,23 @@ export default function AddBlogForm({
             />
           </div>
 
+          {/* Author Name – NEW */}
+          <div className="grid gap-2 bg-[#DFFAFF] p-3">
+            <Label
+              htmlFor="author-name"
+              className="text-base font-semibold text-[#595959]"
+            >
+              Author Name
+            </Label>
+            <Input
+              id="author-name"
+              placeholder="Enter author name"
+              className="border-[#DFFAFF] bg-white text-[#595959] placeholder:text-[#595959] focus:ring-[#44B6CA] focus:border-[#44B6CA]"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+            />
+          </div>
+
           <div className="grid gap-2 py-10">
             <Label
               htmlFor="blog-description"
@@ -175,10 +204,7 @@ export default function AddBlogForm({
             >
               Blog Content
             </Label>
-            <QuillEditor
-              value={content}
-              onChange={setContent}
-            />
+            <QuillEditor value={content} onChange={setContent} />
           </div>
 
           <div className="grid gap-2">
@@ -237,7 +263,7 @@ export default function AddBlogForm({
           </div>
 
           <Button
-            className="text-white hover:bg-[#44B6CA]/90 w-fit px-8 py-2 mt-4 cursor-pointer"
+            className="text-white hover:bg-[#44B6CA]/90 w-fit px-8 py-2 mt-4 cursor-pointer bg-[#44B6CA]"
             onClick={handleSubmit}
             disabled={mutation.isPending}
           >
