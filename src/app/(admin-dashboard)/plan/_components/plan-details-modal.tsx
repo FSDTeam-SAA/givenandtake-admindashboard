@@ -71,6 +71,20 @@ const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({ planId, isOpen, onC
               <label className="block text-sm font-medium text-[#595959] mb-1">Duration</label>
               <p className="text-[#595959] capitalize">{plan.valid}</p>
             </div>
+            {plan.for !== "candidate" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-1">Max Jobs / Year</label>
+                  <p className="text-[#595959]">{plan.maxJobPostsPerYear ?? "Not set"}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#595959] mb-1">Max Jobs / Month</label>
+                  <p className="text-[#595959]">
+                    {plan.maxJobPostsPerMonth ?? "Auto (annual/12)"}
+                  </p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Features</label>
               <ul className="list-disc pl-5 text-[#595959]">

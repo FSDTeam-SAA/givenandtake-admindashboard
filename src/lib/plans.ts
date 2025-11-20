@@ -8,6 +8,8 @@ export interface Plan {
   features: string[]
   for: "candidate" | "company" | "recruiter"
   valid: "monthly" | "yearly" | "PayAsYouGo"
+  maxJobPostsPerYear?: number
+  maxJobPostsPerMonth?: number
   createdAt: string
   updatedAt: string
   __v: number

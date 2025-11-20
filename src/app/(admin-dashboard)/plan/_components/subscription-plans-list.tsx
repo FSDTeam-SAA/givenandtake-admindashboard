@@ -14,8 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Plan } from "@/lib/plans";
-
-
+import PacificPagination from "@/components/PacificPagination";
 
 interface SubscriptionPlansListProps {
   plans: Plan[] | undefined;
@@ -32,7 +31,7 @@ interface SubscriptionPlansListProps {
 
 const SkeletonRow = () => (
   <TableRow className="bg-white">
-    {Array(7)
+    {Array(9)
       .fill(0)
       .map((_, i) => (
         <TableCell key={i}>
@@ -56,7 +55,6 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filter plans by title, description, or "for" field
   const filteredPlans = useMemo(() => {
     if (!plans) return [];
     const lower = searchTerm.toLowerCase().trim();
@@ -79,7 +77,6 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
             Subscription Plans List
           </div>
 
-          {/* Search + Add button */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
@@ -111,6 +108,8 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                 "Description",
                 "Price",
                 "Duration",
+                "Max / Year",
+                "Max / Month",
                 "Features",
                 "Valid For",
                 "Action",
@@ -132,7 +131,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                 .map((_, i) => <SkeletonRow key={i} />)
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-red-500">
+                <TableCell colSpan={9} className="text-center text-red-500">
                   Error loading plans
                 </TableCell>
               </TableRow>
@@ -143,6 +142,14 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                   <TableCell className="truncate max-w-[200px]">{plan.description}</TableCell>
                   <TableCell>${plan.price.toFixed(2)}</TableCell>
                   <TableCell className="capitalize">{plan.valid}</TableCell>
+                  <TableCell className="text-center">
+                    {plan.for === "candidate" ? "N/A" : plan.maxJobPostsPerYear ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {plan.for === "candidate"
+                      ? "N/A"
+                      : plan.maxJobPostsPerMonth ?? "auto"}
+                  </TableCell>
                   <TableCell>
                     <ul className="list-disc list-inside space-y-1">
                       {plan.features.slice(0, 2).map((feature, index) => {
@@ -192,51 +199,18 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   No plans found
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </CardContent>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
-          <div className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => onPageChange(currentPage - 1)}
-            >
-              Previous
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <Button
-                key={i}
-                variant={currentPage === i + 1 ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => onPageChange(currentPage + 1)}
-            >
-              Next
-            </Button>
-          </div>
+        <div className="p-4">
+          <PacificPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
         </div>
-      )}
+      </CardContent>
     </Card>
   );
 };

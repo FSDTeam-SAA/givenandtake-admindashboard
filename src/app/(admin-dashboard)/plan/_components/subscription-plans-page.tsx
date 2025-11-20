@@ -12,42 +12,44 @@ import QueryProvider from "./query-client-provider";
 import { fetchPlans, createPlan, updatePlan, deletePlan, Plan } from "@/lib/plans";
 import { useSession } from "next-auth/react";
 
-// Form data interface
 export interface PlanFormData {
   title: string;
-  titleColor: string; // 👈 added
+  titleColor: string;
   description: string;
   price: string;
   features: string[];
   for: "" | "candidate" | "company" | "recruiter";
   valid: "PayAsYouGo" | "monthly" | "yearly";
+  maxJobPostsPerYear: string;
+  maxJobPostsPerMonth: string;
 }
+
+const createEmptyForm = (): PlanFormData => ({
+  title: "",
+  titleColor: "#44B6CA",
+  description: "",
+  price: "",
+  features: [""],
+  for: "",
+  valid: "PayAsYouGo",
+  maxJobPostsPerYear: "",
+  maxJobPostsPerMonth: "",
+});
 
 const SubscriptionPlansPageContent: React.FC = () => {
   const session = useSession();
   const token = session.data?.user?.accessToken;
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<PlanFormData>({
-    title: "",
-    titleColor: "#44B6CA", // 👈 default color
-    description: "",
-    price: "",
-    features: [""],
-    for: "",
-    valid: "PayAsYouGo",
-  });
+  const [formData, setFormData] = useState<PlanFormData>(createEmptyForm());
   const [editPlan, setEditPlan] = useState<Plan | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch all plans
   const {
     data: plans,
     isLoading,
@@ -62,17 +64,13 @@ const SubscriptionPlansPageContent: React.FC = () => {
     enabled: !!token,
   });
 
-  // Paginated data
   const totalPages = plans ? Math.ceil(plans.length / itemsPerPage) : 1;
   const paginatedPlans = plans
     ? plans.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     : [];
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  const handlePageChange = (page: number) => setCurrentPage(page);
 
-  // Create mutation
   const createMutation = useMutation<
     Plan,
     Error,
@@ -94,7 +92,6 @@ const SubscriptionPlansPageContent: React.FC = () => {
     },
   });
 
-  // Update mutation
   const updateMutation = useMutation<
     Plan,
     Error,
@@ -117,7 +114,6 @@ const SubscriptionPlansPageContent: React.FC = () => {
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation<void, Error, string>({
     mutationFn: (id) => {
       if (!token) throw new Error("No authentication token available");
@@ -135,7 +131,6 @@ const SubscriptionPlansPageContent: React.FC = () => {
     },
   });
 
-  // Handlers
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     index?: number
@@ -148,33 +143,17 @@ const SubscriptionPlansPageContent: React.FC = () => {
         return { ...prev, features: newFeatures };
       });
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleSelectChange = (field: "for" | "valid", value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addFeatureField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      features: [...prev.features, ""],
-    }));
-  };
-
-  const removeFeatureField = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.filter((_, i) => i !== index),
-    }));
-  };
+  const addFeatureField = () => setFormData((prev) => ({ ...prev, features: [...prev.features, ""] }));
+  const removeFeatureField = (index: number) =>
+    setFormData((prev) => ({ ...prev, features: prev.features.filter((_, i) => i !== index) }));
 
   const handleSubmit = () => {
     if (
@@ -189,14 +168,36 @@ const SubscriptionPlansPageContent: React.FC = () => {
       return;
     }
 
+    const annual =
+      formData.maxJobPostsPerYear.trim() === ""
+        ? undefined
+        : Number.parseInt(formData.maxJobPostsPerYear, 10);
+    const monthly =
+      formData.maxJobPostsPerMonth.trim() === ""
+        ? undefined
+        : Number.parseInt(formData.maxJobPostsPerMonth, 10);
+
+    if (formData.for !== "candidate") {
+      if (annual !== undefined && Number.isNaN(annual)) {
+        toast.error("Max job posts per year must be a number");
+        return;
+      }
+      if (monthly !== undefined && Number.isNaN(monthly)) {
+        toast.error("Max job posts per month must be a number");
+        return;
+      }
+    }
+
     const planData: Omit<Plan, "_id" | "createdAt" | "updatedAt" | "__v"> = {
       title: formData.title,
-      titleColor: formData.titleColor, // 👈 include in payload
+      titleColor: formData.titleColor,
       description: formData.description,
       price: Number.parseFloat(formData.price),
       features: formData.features.filter((f) => f.trim() !== ""),
       for: formData.for as "candidate" | "company" | "recruiter",
       valid: formData.valid,
+      maxJobPostsPerYear: annual,
+      maxJobPostsPerMonth: monthly,
     };
 
     if (editPlan) {
@@ -206,17 +207,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      titleColor: "#44B6CA", // 👈 reset to default
-      description: "",
-      price: "",
-      features: [""],
-      for: "",
-      valid: "PayAsYouGo",
-    });
-  };
+  const resetForm = () => setFormData(createEmptyForm());
 
   const handleAddPlan = () => {
     setShowAddForm(true);
@@ -228,12 +219,14 @@ const SubscriptionPlansPageContent: React.FC = () => {
     setEditPlan(plan);
     setFormData({
       title: plan.title,
-      titleColor: plan.titleColor || "#44B6CA", // 👈 pull from plan (fallback)
+      titleColor: plan.titleColor || "#44B6CA",
       description: plan.description,
       price: plan.price.toString(),
       features: plan.features.length > 0 ? plan.features : [""],
       for: plan.for,
       valid: plan.valid,
+      maxJobPostsPerYear: plan.maxJobPostsPerYear?.toString() || "",
+      maxJobPostsPerMonth: plan.maxJobPostsPerMonth?.toString() || "",
     });
     setShowAddForm(true);
   };
@@ -255,9 +248,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
   };
 
   const handleDeleteConfirm = () => {
-    if (planToDelete) {
-      deleteMutation.mutate(planToDelete._id);
-    }
+    if (planToDelete) deleteMutation.mutate(planToDelete._id);
   };
 
   const handleDeleteCancel = () => {
@@ -316,12 +307,10 @@ const SubscriptionPlansPageContent: React.FC = () => {
   );
 };
 
-const SubscriptionPlansPage: React.FC = () => {
-  return (
-    <QueryProvider>
-      <SubscriptionPlansPageContent />
-    </QueryProvider>
-  );
-};
+const SubscriptionPlansPage: React.FC = () => (
+  <QueryProvider>
+    <SubscriptionPlansPageContent />
+  </QueryProvider>
+);
 
 export default SubscriptionPlansPage;

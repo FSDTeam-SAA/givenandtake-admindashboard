@@ -176,7 +176,14 @@ export default function JobPostsPage() {
   }
 
   const jobs = data?.data?.jobs || []
-  const { currentPage: page, totalPages } = data?.data?.meta || { currentPage: 1, totalPages: 1 }
+  const { currentPage: page, totalPages, totalItems = jobs.length } = data?.data?.meta || {
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: jobs.length,
+  }
+
+  const approvedCount = jobs.filter((j) => j.adminApprove).length
+  const pendingCount = jobs.length - approvedCount
 
   if (jobs.length === 0) {
     return (
@@ -201,6 +208,17 @@ export default function JobPostsPage() {
           <FileText className="h-8 w-8" />
           Job Post List
         </CardTitle>
+        <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+          <span className="bg-white rounded-lg px-3 py-1 border border-cyan-200">
+            Total Jobs: <strong>{totalItems}</strong>
+          </span>
+          <span className="bg-white rounded-lg px-3 py-1 border border-green-200 text-green-700">
+            Approved: <strong>{approvedCount}</strong>
+          </span>
+          <span className="bg-white rounded-lg px-3 py-1 border border-amber-200 text-amber-700">
+            Pending: <strong>{pendingCount}</strong>
+          </span>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto mb-4">

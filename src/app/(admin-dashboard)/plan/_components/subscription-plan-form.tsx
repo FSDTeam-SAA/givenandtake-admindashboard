@@ -24,6 +24,8 @@ interface PlanFormData {
   features: string[];
   for: "" | "candidate" | "company" | "recruiter";
   valid: "PayAsYouGo" | "monthly" | "yearly";
+  maxJobPostsPerYear: string;
+  maxJobPostsPerMonth: string;
 }
 
 interface SubscriptionPlanFormProps {
@@ -174,24 +176,58 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
             </div>
           </div>
 
-          {/* Duration */}
-          <div>
-            <label className="block text-sm font-medium text-[#595959] mb-2">
-              Duration
-            </label>
-            <Select
-              value={formData.valid}
-              onValueChange={(value) => onSelectChange("valid", value)}
-            >
-              <SelectTrigger className="w-full border-none !cursor-pointer bg-white">
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-none !cursor-pointer">
-                <SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="yearly">Yearly</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-3 gap-4">
+            {/* Duration */}
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Duration
+              </label>
+              <Select
+                value={formData.valid}
+                onValueChange={(value) => onSelectChange("valid", value)}
+              >
+                <SelectTrigger className="w-full border-none !cursor-pointer bg-white">
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-none !cursor-pointer">
+                  <SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Max job posts per year */}
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Max Jobs / Year (company/recruiter)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="e.g. 24"
+                name="maxJobPostsPerYear"
+                value={formData.maxJobPostsPerYear}
+                onChange={onInputChange}
+                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+              />
+            </div>
+
+            {/* Max job posts per month */}
+            <div className="col-span-1">
+              <label className="block text-sm font-medium text-[#595959] mb-2">
+                Max Jobs / Month (optional)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="auto if blank"
+                name="maxJobPostsPerMonth"
+                value={formData.maxJobPostsPerMonth}
+                onChange={onInputChange}
+                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
+              />
+            </div>
           </div>
 
           {/* Features */}
