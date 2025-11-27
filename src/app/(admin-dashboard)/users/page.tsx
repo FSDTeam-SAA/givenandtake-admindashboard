@@ -33,6 +33,7 @@ interface User {
   address: string;
   dateOfbirth: string;
   evpAvailable: boolean;
+  dateOfdeactivate?: string;
   avatar: {
     url: string;
   };
@@ -280,39 +281,59 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={`w-fit ${user.evpAvailable? "bg-green-100 text-green-800":"bg-red-100 text-red-800"}`}
+                            className={`w-fit ${
+                              user.evpAvailable
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
                             variant="secondary"
                           >
                             {user.evpAvailable ? "Yes" : "No"}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            {user.verificationInfo?.verified ? (
-                              <Badge
-                                className="bg-green-100 text-green-800 w-fit"
-                                variant="secondary"
-                              >
-                                Verified
-                              </Badge>
-                            ) : (
-                              <Badge
-                                className="bg-yellow-100 text-yellow-800 w-fit"
-                                variant="secondary"
-                              >
-                                Unverified
-                              </Badge>
-                            )}
-                            {user.deactivate && (
-                              <Badge
-                                className="bg-red-100 text-red-800 w-fit"
-                                variant="secondary"
-                              >
-                                Deactivated
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
+                      <TableCell>
+  <div className="flex flex-col gap-1">
+    {/* Verification status */}
+    {user.verificationInfo?.verified ? (
+      <Badge
+        className="bg-green-100 text-green-800 w-fit"
+        variant="secondary"
+      >
+        Verified
+      </Badge>
+    ) : (
+      <Badge
+        className="bg-yellow-100 text-yellow-800 w-fit"
+        variant="secondary"
+      >
+        Unverified
+      </Badge>
+    )}
+
+    {/* Deactivation / deletion logic */}
+    {user.deactivate &&
+      (user.dateOfdeactivate ? (
+        // ✅ Only show "Deletion in progress" when dateOfdeactivate is present
+        <Badge
+          className="bg-red-100 text-red-800 w-fit"
+          variant="secondary"
+        >
+          Deletion in progress (
+          {new Date(user.dateOfdeactivate).toLocaleDateString()}
+          )
+        </Badge>
+      ) : (
+        // ✅ Only "Deactivated" when deactivate = true but no dateOfdeactivate
+        <Badge
+          className="bg-red-100 text-red-800 w-fit"
+          variant="secondary"
+        >
+          Deactivated
+        </Badge>
+      ))}
+  </div>
+</TableCell>
+
                         <TableCell>
                           <div className="text-sm text-gray-600">
                             {new Date(user.createdAt).toLocaleDateString()}
@@ -412,4 +433,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
