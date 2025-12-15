@@ -110,9 +110,9 @@ export default function UsersPage() {
   // Filter and search users
   const filteredUsers = usersData?.data?.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phoneNum.includes(searchQuery);
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phoneNum?.includes(searchQuery);
 
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
