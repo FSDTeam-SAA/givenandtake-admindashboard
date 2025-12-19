@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
@@ -54,6 +54,9 @@ const menuItems = [
   { title: "FAQ", icon: User, href: "/faq" },
   { title: "ChatbotQA", icon: User, href: "/chatbot" },
 ];
+
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "gnt_last_activity";
 
 export default function ClientLayout({
   children,
@@ -75,6 +78,103 @@ export default function ClientLayout({
   const session = useSession();
   const token = session.data?.user?.accessToken;
   const admin = session.data?.user?.role === "admin";
+
+  const inactivityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastStorageWriteRef = useRef(0);
+
+  useEffect(() => {
+    if (session.status !== "authenticated") {
+      return;
+    }
+
+    const logoutForInactivity = async () => {
+      try {
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        await signOut({ redirect: false });
+      } finally {
+        router.replace("/login");
+      }
+    };
+
+    const clearTimer = () => {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+    };
+
+    const scheduleLogout = (timestamp: number) => {
+      clearTimer();
+      const elapsed = Date.now() - timestamp;
+      const remaining = INACTIVITY_LIMIT_MS - elapsed;
+      if (remaining <= 0) {
+        void logoutForInactivity();
+        return;
+      }
+      inactivityTimeoutRef.current = setTimeout(logoutForInactivity, remaining);
+    };
+
+    const recordActivity = (timestamp: number) => {
+      if (timestamp - lastStorageWriteRef.current > 15000) {
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(timestamp));
+        lastStorageWriteRef.current = timestamp;
+      }
+      scheduleLogout(timestamp);
+    };
+
+    const handleActivity = () => {
+      recordActivity(Date.now());
+    };
+
+    const stored = localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (stored) {
+      const parsed = Number(stored);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        if (Date.now() - parsed >= INACTIVITY_LIMIT_MS) {
+          void logoutForInactivity();
+          return;
+        }
+        scheduleLogout(parsed);
+      } else {
+        recordActivity(Date.now());
+      }
+    } else {
+      recordActivity(Date.now());
+    }
+
+    const events = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "touchstart",
+      "scroll",
+      "pointerdown",
+    ];
+
+    events.forEach((event) => {
+      window.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== LAST_ACTIVITY_KEY || !event.newValue) {
+        return;
+      }
+      const parsed = Number(event.newValue);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return;
+      }
+      scheduleLogout(parsed);
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      clearTimer();
+      events.forEach((event) => {
+        window.removeEventListener(event, handleActivity);
+      });
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [router, session.status]);
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
@@ -99,6 +199,7 @@ export default function ClientLayout({
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem(LAST_ACTIVITY_KEY);
       await signOut({ redirect: false });
       router.push("/login");
     } catch (error) {
