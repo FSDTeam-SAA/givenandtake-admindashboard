@@ -234,7 +234,7 @@ export default function UsersPage() {
                       <TableHead className="font-semibold">User</TableHead>
                       <TableHead className="font-semibold">Role</TableHead>
                       <TableHead className="font-semibold">Location</TableHead>
-                      <TableHead className="font-semibold">EVP</TableHead>
+                      <TableHead className="font-semibold">EVP Profile</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Joined</TableHead>
                       <TableHead className="font-semibold text-center">
