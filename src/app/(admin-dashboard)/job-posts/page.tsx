@@ -29,6 +29,7 @@ interface Job {
   recruiterId?: Recruiter;
   companyId?: Company;
   createdAt: string;
+  publishDate: string;
   updatedAt: string;
   status: string;
   adminApprove?: boolean;
@@ -253,6 +254,7 @@ export default function JobPostsPage() {
                   "Posted By Name",
                   "Posted By Email",
                   "Posted Date",
+                  "Updated Date",
                   "Approval Status",
                   "Details",
                 ].map((header) => (
@@ -298,6 +300,9 @@ export default function JobPostsPage() {
                     </td>
                     <td className="px-6 py-4 text-base font-normal text-gray-600">
                       {postedByEmail}
+                    </td>
+                    <td className="px-6 py-4 text-base font-normal text-gray-600">
+                      {formatDate(job.publishDate)}
                     </td>
                     <td className="px-6 py-4 text-base font-normal text-gray-600">
                       {formatDate(job.updatedAt)}
