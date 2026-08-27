@@ -3,10 +3,39 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, FileText } from "lucide-react";
 import { useMemo, useState } from "react";
 import JobDetails from "./_components/JobDetails";
 import PacificPagination from "@/components/PacificPagination";
+
+type AdminJobView =
+  | "all"
+  | "pending"
+  | "published"
+  | "scheduled"
+  | "denied"
+  | "expired"
+  | "archived";
+
+const JOB_VIEWS: Array<{ value: AdminJobView; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "published", label: "Published" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "denied", label: "Denied" },
+  { value: "expired", label: "Expired" },
+  { value: "archived", label: "Archived" },
+];
+
+const STATUS_STYLES: Record<Exclude<AdminJobView, "all">, string> = {
+  pending: "border-amber-200 bg-amber-50 text-amber-700",
+  published: "border-green-200 bg-green-50 text-green-700",
+  scheduled: "border-blue-200 bg-blue-50 text-blue-700",
+  denied: "border-red-200 bg-red-50 text-red-700",
+  expired: "border-gray-300 bg-gray-100 text-gray-700",
+  archived: "border-purple-200 bg-purple-50 text-purple-700",
+};
 
 // Interface definitions
 interface Recruiter {
@@ -33,7 +62,12 @@ interface Job {
   updatedAt: string;
   status: string;
   adminApprove?: boolean;
+  arcrivedJob?: boolean;
+  deadline?: string;
+  counter?: number;
 }
+
+type JobCounts = Record<AdminJobView, number>;
 
 interface ApiResponse {
   success: boolean;
@@ -46,17 +80,36 @@ interface ApiResponse {
       itemsPerPage: number;
     };
     jobs: Job[] | null;
+    counts?: JobCounts;
+    view?: AdminJobView;
   };
 }
 
+const getJobView = (job: Job): Exclude<AdminJobView, "all"> => {
+  const now = Date.now();
+  if (job.arcrivedJob) return "archived";
+  if (job.deadline && new Date(job.deadline).getTime() < now) return "expired";
+  if (job.jobApprove === "denied") return "denied";
+  if (job.adminApprove !== true || job.jobApprove !== "approved") {
+    return "pending";
+  }
+  if (job.publishDate && new Date(job.publishDate).getTime() > now) {
+    return "scheduled";
+  }
+  return "published";
+};
+
 // Fetch function with page parameter
-const fetchJobPosts = async (page: number): Promise<ApiResponse> => {
+const fetchJobPosts = async (
+  page: number,
+  view: AdminJobView
+): Promise<ApiResponse> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/admin/job/approve?page=${page}`,
+      `${process.env.NEXT_PUBLIC_BASE_URL}/admin/job/approve?page=${page}&view=${view}`,
       {
         signal: controller.signal,
       }
@@ -81,10 +134,11 @@ const fetchJobPosts = async (page: number): Promise<ApiResponse> => {
 export default function JobPostsPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeView, setActiveView] = useState<AdminJobView>("all");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["job-posts", currentPage],
-    queryFn: () => fetchJobPosts(currentPage),
+    queryKey: ["job-posts", activeView, currentPage],
+    queryFn: () => fetchJobPosts(currentPage, activeView),
     retry: 2,
     staleTime: 5 * 60 * 1000,
   });
@@ -107,6 +161,11 @@ export default function JobPostsPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleViewChange = (view: AdminJobView) => {
+    setActiveView(view);
+    setCurrentPage(1);
   };
 
   if (isLoading) {
@@ -199,28 +258,20 @@ export default function JobPostsPage() {
     totalItems = jobs.length,
   } = data?.data?.meta || {
     currentPage: 1,
-    totalPages: 1,
+    totalPages: 0,
     totalItems: jobs.length,
   };
-
-  const approvedCount = jobs.filter((j) => j.adminApprove).length;
-  const pendingCount = jobs.length - approvedCount;
-
-  if (jobs.length === 0) {
-    return (
-      <Card className="border-none shadow-none">
-        <CardHeader className="bg-cyan-100 rounded-lg">
-          <CardTitle className="flex items-center gap-2 text-4xl font-bold text-cyan-600 py-6">
-            <FileText className="h-8 w-8" />
-            Job Post List
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 text-gray-500">
-          No job posts available.
-        </CardContent>
-      </Card>
-    );
-  }
+  const fallbackCounts = JOB_VIEWS.reduce(
+    (result, item) => {
+      result[item.value] =
+        item.value === "all"
+          ? totalItems
+          : jobs.filter((job) => getJobView(job) === item.value).length;
+      return result;
+    },
+    {} as JobCounts
+  );
+  const counts = data?.data?.counts ?? fallbackCounts;
 
   return (
     <Card className="border-none shadow-none">
@@ -229,19 +280,35 @@ export default function JobPostsPage() {
           <FileText className="h-8 w-8" />
           Job Post List
         </CardTitle>
-        <div className="flex flex-wrap gap-3 text-sm text-gray-700">
-          <span className="bg-white rounded-lg px-3 py-1 border border-cyan-200">
-            Total Jobs: <strong>{totalItems}</strong>
-          </span>
-          <span className="bg-white rounded-lg px-3 py-1 border border-green-200 text-green-700">
-            Approved: <strong>{approvedCount}</strong>
-          </span>
-          <span className="bg-white rounded-lg px-3 py-1 border border-amber-200 text-amber-700">
-            Pending: <strong>{pendingCount}</strong>
-          </span>
+        <div className="flex flex-wrap gap-2" aria-label="Filter job posts">
+          {JOB_VIEWS.map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              size="sm"
+              variant={activeView === item.value ? "default" : "outline"}
+              className={
+                activeView === item.value
+                  ? "bg-cyan-600 text-white hover:bg-cyan-700"
+                  : "border-cyan-300 bg-white text-gray-700 hover:bg-cyan-50"
+              }
+              onClick={() => handleViewChange(item.value)}
+              aria-pressed={activeView === item.value}
+            >
+              {item.label}
+              <span className="ml-2 rounded-full bg-black/10 px-2 py-0.5 text-xs">
+                {counts[item.value] ?? 0}
+              </span>
+            </Button>
+          ))}
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        {jobs.length === 0 ? (
+          <div className="p-10 text-center text-gray-500">
+            No {activeView === "all" ? "" : `${activeView} `}job posts found.
+          </div>
+        ) : (
         <div className="overflow-x-auto mb-4">
           <table
             className="w-full table-auto"
@@ -255,7 +322,8 @@ export default function JobPostsPage() {
                   "Posted By Email",
                   "Posted Date",
                   "Updated Date",
-                  "Approval Status",
+                  "Applicants",
+                  "Status",
                   "Details",
                 ].map((header) => (
                   <th
@@ -272,19 +340,17 @@ export default function JobPostsPage() {
               {jobs.map((job, index) => {
                 let postedByName = "Unknown";
                 let postedByEmail = "N/A";
-                let postedByData = null;
-                let approvalStatus = false;
+                const jobView = getJobView(job);
+                const statusLabel = JOB_VIEWS.find(
+                  (item) => item.value === jobView
+                )?.label;
 
                 if (job.recruiterId) {
                   postedByName = `${job.recruiterId.firstName} ${job.recruiterId.sureName}`;
                   postedByEmail = job.recruiterId.emailAddress;
-                  postedByData = { recruiterId: job.recruiterId };
-                  approvalStatus = job?.adminApprove as boolean;
                 } else if (job.companyId) {
                   postedByName = job.companyId.cname || "Unknown Company";
                   postedByEmail = job.companyId.cemail || "N/A";
-                  postedByData = { companyId: job.companyId };
-                  approvalStatus = job?.adminApprove as boolean;
                 }
 
                 return (
@@ -307,26 +373,23 @@ export default function JobPostsPage() {
                     <td className="px-6 py-4 text-base font-normal text-gray-600">
                       {formatDate(job.updatedAt)}
                     </td>
+                    <td className="px-6 py-4 text-base text-gray-600">
+                      {job.counter ?? 0}
+                    </td>
                     <td className="px-6 py-4 text-base font-normal">
-                      {job.adminApprove ? (
-                        <span className="text-green-600 font-semibold">
-                          Approved
-                        </span>
-                      ) : (
-                        <span className="text-red-500 font-semibold">
-                          Pending
-                        </span>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={STATUS_STYLES[jobView]}
+                      >
+                        {statusLabel}
+                      </Badge>
                     </td>
 
                     <td className="px-6 py-4">
                       <Button
                         size="sm"
                         className="text-white w-[102px] cursor-pointer"
-                        onClick={() => {
-                          console.log(postedByData); // Log recruiterId or companyId data
-                          setSelectedJobId(job._id);
-                        }}
+                        onClick={() => setSelectedJobId(job._id)}
                       >
                         View
                       </Button>
@@ -337,11 +400,16 @@ export default function JobPostsPage() {
             </tbody>
           </table>
         </div>
-        <PacificPagination
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+        )}
+        {totalPages > 1 && (
+          <div className="pb-4">
+            <PacificPagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

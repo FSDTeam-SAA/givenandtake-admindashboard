@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -84,6 +84,7 @@ interface JobDetail {
   createdAt: string;
   updatedAt: string;
   __v: number;
+  counter?: number;
 }
 
 interface JobDetailResponse {
@@ -96,6 +97,37 @@ interface JobDetailsProps {
   jobId: string;
   onBack: () => void;
 }
+
+type JobDisplayStatus =
+  | "Pending"
+  | "Published"
+  | "Scheduled"
+  | "Denied"
+  | "Expired"
+  | "Archived";
+
+const getJobDisplayStatus = (job: JobDetail): JobDisplayStatus => {
+  const now = Date.now();
+  if (job.arcrivedJob) return "Archived";
+  if (job.deadline && new Date(job.deadline).getTime() < now) return "Expired";
+  if (job.jobApprove === "denied") return "Denied";
+  if (job.adminApprove !== true || job.jobApprove !== "approved") {
+    return "Pending";
+  }
+  if (job.publishDate && new Date(job.publishDate).getTime() > now) {
+    return "Scheduled";
+  }
+  return "Published";
+};
+
+const STATUS_STYLES: Record<JobDisplayStatus, string> = {
+  Pending: "border-amber-200 bg-amber-50 text-amber-700",
+  Published: "border-green-200 bg-green-50 text-green-700",
+  Scheduled: "border-blue-200 bg-blue-50 text-blue-700",
+  Denied: "border-red-200 bg-red-50 text-red-700",
+  Expired: "border-gray-300 bg-gray-100 text-gray-700",
+  Archived: "border-purple-200 bg-purple-50 text-purple-700",
+};
 
 const fetchJobDetail = async (id: string): Promise<JobDetailResponse> => {
   try {
@@ -150,7 +182,6 @@ const deleteJob = async (id: string) => {
 };
 
 export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -162,10 +193,15 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
 
   const updateMutation = useMutation({
     mutationFn: updateJobStatus,
-    onSuccess: () => {
-      toast.success("Job status updated successfully");
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.adminApprove
+          ? "Job approved successfully"
+          : "Job removed from publication successfully"
+      );
       queryClient.invalidateQueries({ queryKey: ["job-detail", jobId] });
-      router.push("/job-posts");
+      queryClient.invalidateQueries({ queryKey: ["job-posts"] });
+      onBack();
     },
     onError: () => {
       toast.error("Failed to update job status");
@@ -176,9 +212,10 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
     mutationFn: deleteJob,
     onSuccess: () => {
       toast.success("Job deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["job-detail", jobId] });
+      queryClient.removeQueries({ queryKey: ["job-detail", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["job-posts"] });
       setIsDeleteModalOpen(false);
-      window.location.reload();
+      onBack();
     },
     onError: () => {
       toast.error("Failed to delete job");
@@ -236,6 +273,12 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
       </div>
     );
   }
+
+  const displayStatus = getJobDisplayStatus(job);
+  const canApprove = displayStatus === "Pending" || displayStatus === "Denied";
+  const canDeny = displayStatus === "Pending";
+  const canUnpublish =
+    displayStatus === "Published" || displayStatus === "Scheduled";
 
   // Determine whether to show recruiterId or companyId
   let postedByName = "Unknown";
@@ -336,9 +379,16 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
                 level
               </p>
               <p className="text-base font-bold text-black">Status:</p>
-              <p className="text-sm">
-                {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-              </p>
+              <div>
+                <Badge
+                  variant="outline"
+                  className={STATUS_STYLES[displayStatus]}
+                >
+                  {displayStatus}
+                </Badge>
+              </div>
+              <p className="text-base font-bold text-black">Applications:</p>
+              <p className="text-sm">{job.counter ?? 0}</p>
               <p className="text-base font-bold text-black">Ordered:</p>
               <p className="text-sm">{formatDate(job.createdAt)}</p>
               <p className="text-base font-bold text-black">Published:</p>
@@ -368,33 +418,35 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </Button>
-          <Button
-            variant="outline"
-            className={`px-6 py-2 border-gray-300 hover:bg-gray-100
-    ${
-      job.adminApprove === false
-        ? "bg-red-100 text-red-600 border-red-300"
-        : "text-gray-600"
-    }
-  `}
-            onClick={() =>
-              updateMutation.mutate({ id: jobId, adminApprove: false })
-            }
-            disabled={updateMutation.isPending}
-          >
-            {updateMutation.isPending ? "Updating..." : "Deny"}
-          </Button>
+          {(canDeny || canUnpublish) && (
+            <Button
+              variant="outline"
+              className="px-6 py-2 border-red-300 text-red-600 hover:bg-red-50"
+              onClick={() =>
+                updateMutation.mutate({ id: jobId, adminApprove: false })
+              }
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending
+                ? "Updating..."
+                : canUnpublish
+                ? "Unpublish"
+                : "Deny"}
+            </Button>
+          )}
 
-          <Button
-            size="sm"
-            className="text-white w-[102px] cursor-pointer"
-            onClick={() =>
-              updateMutation.mutate({ id: jobId, adminApprove: true })
-            }
-            disabled={updateMutation.isPending || job.adminApprove === true}
-          >
-            {updateMutation.isPending ? "Updating..." : "Approve"}
-          </Button>
+          {canApprove && (
+            <Button
+              size="sm"
+              className="text-white w-[102px] cursor-pointer"
+              onClick={() =>
+                updateMutation.mutate({ id: jobId, adminApprove: true })
+              }
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Updating..." : "Approve"}
+            </Button>
+          )}
           <Button onClick={onBack} className="px-6 py-2 text-white">
             Back to List
           </Button>
@@ -407,9 +459,11 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete Job</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the job &quot;
-              <strong>{job.title}</strong>&quot;? This action cannot be undone
-              and all associated data will be permanently removed.
+              Permanently delete &quot;<strong>{job.title}</strong>&quot;? This
+              cannot be undone. The job, its {job.counter ?? 0} application
+              {(job.counter ?? 0) === 1 ? "" : "s"}, bookmarks, and related
+              notifications will be removed. Candidate profiles and shared
+              resumes will be preserved.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-end">
@@ -425,9 +479,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={deleteMutation.isPending}
-              className="text-red-500 hover:bg-red-600 hover:text-white"
+              className="text-white"
             >
-              {deleteMutation.isPending ? "Deleting..." : "Yes, Delete"}
+              {deleteMutation.isPending ? "Deleting..." : "Delete permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
