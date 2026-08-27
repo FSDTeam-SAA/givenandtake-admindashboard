@@ -476,10 +476,9 @@ export default function JobDetails({ jobId, onBack }: JobDetailsProps) {
               Cancel
             </Button>
             <Button
-              variant="destructive"
               onClick={handleConfirmDelete}
               disabled={deleteMutation.isPending}
-              className="text-white"
+              className="border border-red-700 bg-red-600 text-white hover:bg-red-700 hover:text-white disabled:bg-red-300"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete permanently"}
             </Button>
