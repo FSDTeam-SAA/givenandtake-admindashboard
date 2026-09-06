@@ -7,7 +7,8 @@ export interface Plan {
   price: number
   features: string[]
   for: "candidate" | "company" | "recruiter"
-  valid: "monthly" | "yearly" | "PayAsYouGo"
+  valid: "monthly" | "yearly" | "PayAsYouGo" | "credits"
+  jobPostCredits?: number | null
   maxJobPostsPerYear?: number
   maxJobPostsPerMonth?: number
   createdAt: string

@@ -28,6 +28,13 @@ interface Payment {
   amount: number
   createdAt: string
   paymentStatus: "pending" | "completed" | "failed" | "refunded" | "complete"
+  duration?: string
+  jobPostCredits?: number | null
+  jobPostsUsed?: number
+  refundAdminFee?: number
+  refundDeductions?: number
+  refundProcessing?: boolean
+  refundQuote?: { deadline: string; deductions: number; adminFee: number; refundAmount: number; eligible: boolean }
   paymentMethod: string
   planId?: Plan
 }
@@ -85,7 +92,7 @@ function SkeletonTable() {
         </div>
       </div>
       <Card className="border-none shadow-none">
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -154,7 +161,7 @@ export default function PaymentDetailsPage() {
       </div>
 
       <Card className="border-none shadow-none">
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -166,6 +173,8 @@ export default function PaymentDetailsPage() {
                   "Date",
                   "Status",
                   "Method",
+                  "Job credits",
+                  "Refund",
                   "Action",
                 ].map((header) => (
                   <th
@@ -216,6 +225,22 @@ export default function PaymentDetailsPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-[#000000]">
                     {payment.paymentMethod}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    {payment.duration === "credits" ? <><p>{payment.jobPostCredits === null ? "Unlimited" : Math.max((payment.jobPostCredits ?? 0) - (payment.jobPostsUsed ?? 0), 0)} remaining</p><p>{payment.jobPostsUsed ?? 0} used · Never expires</p></> : "N/A"}
+                  </td>
+                  <td className="px-6 py-4 text-sm min-w-56">
+                    {payment.refundProcessing ? <p>Processing / awaiting reconciliation</p> : payment.paymentStatus === "refunded" ? <>
+                      <p>Refunded: ${Math.max(payment.amount - (payment.refundDeductions ?? 0) - (payment.refundAdminFee ?? 0), 0).toFixed(2)}</p>
+                      <p>Job deductions: ${(payment.refundDeductions ?? 0).toFixed(2)}</p>
+                      <p>Admin fee: ${(payment.refundAdminFee ?? 0).toFixed(2)}</p>
+                    </> : payment.refundQuote ? <>
+                      <p className="font-medium">{payment.refundQuote.eligible ? "Eligible" : "Not eligible"}</p>
+                      <p>Deadline: {format(new Date(payment.refundQuote.deadline), "dd MMM yyyy HH:mm")}</p>
+                      <p>Job deductions: ${payment.refundQuote.deductions.toFixed(2)}</p>
+                      <p>Admin fee (10%): ${payment.refundQuote.adminFee.toFixed(2)}</p>
+                      <p>Refund estimate: ${payment.refundQuote.eligible ? payment.refundQuote.refundAmount.toFixed(2) : "0.00"}</p>
+                    </> : "See subscription policy"}
                   </td>
                   <td className="px-6 py-4">
                     <button

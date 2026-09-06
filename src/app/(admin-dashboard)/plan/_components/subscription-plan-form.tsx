@@ -23,7 +23,8 @@ interface PlanFormData {
   price: string;
   features: string[];
   for: "" | "candidate" | "company" | "recruiter";
-  valid: "PayAsYouGo" | "monthly" | "yearly";
+  valid: "PayAsYouGo" | "monthly" | "yearly" | "credits";
+  jobPostCredits: string;
   maxJobPostsPerYear: string;
   maxJobPostsPerMonth: string;
 }
@@ -176,59 +177,17 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {/* Duration */}
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-[#595959] mb-2">
-                Duration
-              </label>
-              <Select
-                value={formData.valid}
-                onValueChange={(value) => onSelectChange("valid", value)}
-              >
-                <SelectTrigger className="w-full border-none !cursor-pointer bg-white">
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-none !cursor-pointer">
-                  <SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Max job posts per year */}
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-[#595959] mb-2">
-                Max Jobs / Year (company/recruiter)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="e.g. 24"
-                name="maxJobPostsPerYear"
-                value={formData.maxJobPostsPerYear}
-                onChange={onInputChange}
-                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
-              />
-            </div>
-
-            {/* Max job posts per month */}
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-[#595959] mb-2">
-                Max Jobs / Month (optional)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="auto if blank"
-                name="maxJobPostsPerMonth"
-                value={formData.maxJobPostsPerMonth}
-                onChange={onInputChange}
-                className="w-full bg-white border-gray-300 outline-none focus:ring-2 focus:ring-[#44B6CA] focus:border-transparent"
-              />
-            </div>
-          </div>
+          {formData.for === "candidate" ? <div>
+            <label className="block text-sm font-medium mb-2">Duration</label>
+            <Select value={formData.valid} onValueChange={(value) => onSelectChange("valid", value)}>
+              <SelectTrigger><SelectValue placeholder="Duration" /></SelectTrigger>
+              <SelectContent><SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="yearly">Yearly</SelectItem></SelectContent>
+            </Select>
+          </div> : <div className="rounded-lg bg-sky-50 p-4">
+            <label htmlFor="jobPostCredits" className="block text-sm font-medium mb-2">Job post credits</label>
+            <Input id="jobPostCredits" name="jobPostCredits" value={formData.jobPostCredits} onChange={onInputChange} placeholder='e.g. 2, or "unlimited"' />
+            <p className="mt-2 text-sm text-gray-600">One-time purchase. Credits never expire. Enter “unlimited” for unlimited job posts.</p>
+          </div>}
 
           {/* Features */}
           <div>

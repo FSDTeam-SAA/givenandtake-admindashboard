@@ -108,8 +108,8 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                 "Description",
                 "Price",
                 "Duration",
-                "Max / Year",
-                "Max / Month",
+                "Job posts",
+                "Posting limit",
                 "Features",
                 "Valid For",
                 "Action",
@@ -141,15 +141,9 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                   <TableCell className="truncate max-w-[200px]">{plan.title}</TableCell>
                   <TableCell className="truncate max-w-[200px]">{plan.description}</TableCell>
                   <TableCell>${plan.price.toFixed(2)}</TableCell>
-                  <TableCell className="capitalize">{plan.valid}</TableCell>
-                  <TableCell className="text-center">
-                    {plan.for === "candidate" ? "N/A" : plan.maxJobPostsPerYear ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {plan.for === "candidate"
-                      ? "N/A"
-                      : plan.maxJobPostsPerMonth ?? "auto"}
-                  </TableCell>
+                  <TableCell className="capitalize">{plan.valid === "credits" ? "Never expires" : plan.valid}</TableCell>
+                  <TableCell>{plan.for === "candidate" ? "N/A" : plan.valid === "credits" ? (plan.jobPostCredits === null ? "Unlimited" : plan.jobPostCredits) : "Legacy plan"}</TableCell>
+                  <TableCell>{plan.valid === "credits" ? "Use anytime" : "See details"}</TableCell>
                   <TableCell>
                     <ul className="list-disc list-inside space-y-1">
                       {plan.features.slice(0, 2).map((feature, index) => {

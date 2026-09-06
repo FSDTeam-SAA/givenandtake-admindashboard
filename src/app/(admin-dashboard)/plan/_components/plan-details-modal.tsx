@@ -69,18 +69,18 @@ const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({ planId, isOpen, onC
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Duration</label>
-              <p className="text-[#595959] capitalize">{plan.valid}</p>
+              <p className="text-[#595959] capitalize">{plan.valid === "credits" ? "Never expires" : plan.valid}</p>
             </div>
             {plan.for !== "candidate" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-[#595959] mb-1">Max Jobs / Year</label>
-                  <p className="text-[#595959]">{plan.maxJobPostsPerYear ?? "Not set"}</p>
+                  <label className="block text-sm font-medium text-[#595959] mb-1">Job post credits</label>
+                  <p className="text-[#595959]">{plan.valid === "credits" ? (plan.jobPostCredits === null ? "Unlimited" : plan.jobPostCredits) : plan.maxJobPostsPerYear ?? "Not set"}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#595959] mb-1">Max Jobs / Month</label>
+                  <label className="block text-sm font-medium text-[#595959] mb-1">Usage period</label>
                   <p className="text-[#595959]">
-                    {plan.maxJobPostsPerMonth ?? "Auto (annual/12)"}
+                    {plan.valid === "credits" ? "Never expires; use anytime" : plan.maxJobPostsPerMonth ?? "Auto (annual/12)"}
                   </p>
                 </div>
               </div>
@@ -95,7 +95,7 @@ const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({ planId, isOpen, onC
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Valid For</label>
-              <p className="text-[#595959] capitalize">{plan.valid}</p>
+              <p className="text-[#595959] capitalize">{plan.valid === "credits" ? "Never expires" : plan.valid}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Created At</label>

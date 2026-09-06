@@ -19,7 +19,8 @@ export interface PlanFormData {
   price: string;
   features: string[];
   for: "" | "candidate" | "company" | "recruiter";
-  valid: "PayAsYouGo" | "monthly" | "yearly";
+  valid: "PayAsYouGo" | "monthly" | "yearly" | "credits";
+  jobPostCredits: string;
   maxJobPostsPerYear: string;
   maxJobPostsPerMonth: string;
 }
@@ -32,6 +33,7 @@ const createEmptyForm = (): PlanFormData => ({
   features: [""],
   for: "",
   valid: "PayAsYouGo",
+  jobPostCredits: "",
   maxJobPostsPerYear: "",
   maxJobPostsPerMonth: "",
 });
@@ -148,7 +150,9 @@ const SubscriptionPlansPageContent: React.FC = () => {
   };
 
   const handleSelectChange = (field: "for" | "valid", value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value,
+      ...(field === "for" ? { valid: value === "candidate" ? "monthly" : "credits" } : {})
+    }));
   };
 
   const addFeatureField = () => setFormData((prev) => ({ ...prev, features: [...prev.features, ""] }));
@@ -188,6 +192,11 @@ const SubscriptionPlansPageContent: React.FC = () => {
       }
     }
 
+    const credits = formData.jobPostCredits.trim().toLowerCase() === "unlimited" ? null : Number(formData.jobPostCredits);
+    if (formData.for !== "candidate" && (formData.jobPostCredits.trim() === "" || (credits !== null && (!Number.isSafeInteger(credits) || credits <= 0)))) {
+      toast.error('Enter a positive whole number of job posts, or "unlimited"');
+      return;
+    }
     const planData: Omit<Plan, "_id" | "createdAt" | "updatedAt" | "__v"> = {
       title: formData.title,
       titleColor: formData.titleColor,
@@ -195,7 +204,8 @@ const SubscriptionPlansPageContent: React.FC = () => {
       price: Number.parseFloat(formData.price),
       features: formData.features.filter((f) => f.trim() !== ""),
       for: formData.for as "candidate" | "company" | "recruiter",
-      valid: formData.valid,
+      valid: formData.for === "candidate" ? formData.valid : "credits",
+      ...(formData.for !== "candidate" ? { jobPostCredits: credits } : {}),
       maxJobPostsPerYear: annual,
       maxJobPostsPerMonth: monthly,
     };
@@ -224,7 +234,8 @@ const SubscriptionPlansPageContent: React.FC = () => {
       price: plan.price.toString(),
       features: plan.features.length > 0 ? plan.features : [""],
       for: plan.for,
-      valid: plan.valid,
+      valid: plan.for === "candidate" ? plan.valid : "credits",
+      jobPostCredits: plan.jobPostCredits === null ? "unlimited" : plan.jobPostCredits?.toString() || "",
       maxJobPostsPerYear: plan.maxJobPostsPerYear?.toString() || "",
       maxJobPostsPerMonth: plan.maxJobPostsPerMonth?.toString() || "",
     });
@@ -274,6 +285,22 @@ const SubscriptionPlansPageContent: React.FC = () => {
 
   return (
     <>
+      <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 p-5">
+        <h2 className="text-xl font-semibold">Company &amp; recruiter job packages</h2>
+        <p className="mt-2">One-time purchases. Credits never expire and have no monthly or yearly posting limits.</p>
+        <p className="mt-2 text-sm">Refund window: 30 days from payment. Deduct $99.99 for each job posted, then a 10% administration fee from the remaining balance. See Payment Details for each purchase.</p>
+        <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm">
+          <thead><tr><th className="py-2">Package</th><th>Company price</th><th>Recruiter price</th><th>Job posts</th></tr></thead>
+          <tbody>{Array.from(new Set((plans ?? []).filter(p => p.valid === "credits").map(p => p.title))).map(title => {
+            const company = plans?.find(p => p.title === title && p.for === "company" && p.valid === "credits");
+            const recruiter = plans?.find(p => p.title === title && p.for === "recruiter" && p.valid === "credits");
+            const plan = company ?? recruiter;
+            return <tr key={title} className="border-t border-sky-100"><th className="py-2 font-medium">{title}</th>
+              <td>{company ? `$${company.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Missing"}</td>
+              <td>{recruiter ? `$${recruiter.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Missing"}</td>
+              <td>{plan?.jobPostCredits === null ? "Unlimited" : plan?.jobPostCredits}{company && recruiter && company.jobPostCredits !== recruiter.jobPostCredits ? " (credit mismatch)" : ""}</td></tr>;
+          })}</tbody></table></div>
+      </div>
       <SubscriptionPlansList
         plans={paginatedPlans}
         isLoading={isLoading}
