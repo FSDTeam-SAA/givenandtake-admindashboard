@@ -18,10 +18,10 @@ export default function PackagePriceEditor({ plan, saving, onClose, onSave }: {
   const [error, setError] = useState("");
 
   return <Dialog open onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
-    <DialogContent>
-      <DialogHeader>
+    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-slate-200 bg-white text-slate-900 shadow-2xl">
+      <DialogHeader className="pr-6">
         <DialogTitle>Edit {plan.for} pricing</DialogTitle>
-        <DialogDescription>{plan.title}. Changes apply to future purchases. Existing purchased credits are preserved.</DialogDescription>
+        <DialogDescription className="text-slate-600">{plan.title}. Changes apply to future purchases. Existing purchased credits are preserved.</DialogDescription>
       </DialogHeader>
       <form className="space-y-4" onSubmit={(event) => {
         event.preventDefault();
@@ -38,11 +38,11 @@ export default function PackagePriceEditor({ plan, saving, onClose, onSave }: {
       }}>
         <div>
           <label htmlFor="package-price" className="mb-2 block font-medium">Price (USD)</label>
-          <Input id="package-price" type="number" min="0.01" step="0.01" required value={price} onChange={e => setPrice(e.target.value)} disabled={saving} />
+          <Input className="border-slate-300 bg-white text-slate-900" id="package-price" type="number" min="0.01" step="0.01" required value={price} onChange={e => setPrice(e.target.value)} disabled={saving} />
         </div>
         <div>
           <label htmlFor="package-credits" className="mb-2 block font-medium">Job post credits</label>
-          <Input id="package-credits" type="number" min="1" step="1" required={!unlimited} disabled={saving || unlimited} value={credits} onChange={e => setCredits(e.target.value)} />
+          <Input className="border-slate-300 bg-white text-slate-900 disabled:bg-slate-100" id="package-credits" type="number" min="1" step="1" required={!unlimited} disabled={saving || unlimited} value={credits} onChange={e => setCredits(e.target.value)} />
           <label className="mt-3 flex items-center gap-2"><input type="checkbox" checked={unlimited} onChange={e => setUnlimited(e.target.checked)} disabled={saving} /> Unlimited job posts</label>
         </div>
         <p className="text-sm text-gray-600">Credits never expire. Company and recruiter prices are edited separately.</p>
