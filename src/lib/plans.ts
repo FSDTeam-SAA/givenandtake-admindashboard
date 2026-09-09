@@ -64,10 +64,11 @@ export const createPlan = async (
     },
     body: JSON.stringify(newPlan),
   })
-  if (!response.ok) {
-    throw new Error("Failed to create plan")
+  const result = await response.json()
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Failed to create plan")
   }
-  return response.json()
+  return result.data as Plan
 }
 
 // Update a plan
@@ -88,10 +89,11 @@ export const updatePlan = async ({
     },
     body: JSON.stringify(updatedPlan),
   })
-  if (!response.ok) {
-    throw new Error("Failed to update plan")
+  const result = await response.json()
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Failed to update plan")
   }
-  return response.json()
+  return result.data as Plan
 }
 
 // Delete a plan

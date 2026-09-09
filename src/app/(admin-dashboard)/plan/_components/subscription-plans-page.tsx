@@ -9,6 +9,8 @@ import SubscriptionPlanForm from "./subscription-plan-form";
 import PlanDetailsModal from "./plan-details-modal";
 import DeletePlanModal from "./delete-plan-modal";
 import QueryProvider from "./query-client-provider";
+import PackagePriceEditor from "./package-price-editor";
+import { Button } from "@/components/ui/button";
 import { fetchPlans, createPlan, updatePlan, deletePlan, Plan } from "@/lib/plans";
 import { useSession } from "next-auth/react";
 
@@ -50,6 +52,8 @@ const SubscriptionPlansPageContent: React.FC = () => {
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [quickEdit, setQuickEdit] = useState<Plan | null>(null);
   const itemsPerPage = 10;
 
   const {
@@ -66,10 +70,11 @@ const SubscriptionPlansPageContent: React.FC = () => {
     enabled: !!token,
   });
 
-  const totalPages = plans ? Math.ceil(plans.length / itemsPerPage) : 1;
-  const paginatedPlans = plans
-    ? plans.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    : [];
+  const search = searchTerm.trim().toLowerCase();
+  const filteredPlans = (plans ?? []).filter(plan => !search || [plan.title, plan.description, plan.for].some(value => value.toLowerCase().includes(search)));
+  const totalPages = Math.max(1, Math.ceil(filteredPlans.length / itemsPerPage));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const paginatedPlans = filteredPlans.slice((visiblePage - 1) * itemsPerPage, visiblePage * itemsPerPage);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
 
@@ -89,7 +94,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
       refetch();
     },
     onError: (error) => {
-      toast.error("Failed to add plan. Please try again.");
+      toast.error(error.message);
       console.error("Error adding plan:", error);
     },
   });
@@ -105,13 +110,14 @@ const SubscriptionPlansPageContent: React.FC = () => {
     },
     onSuccess: () => {
       toast.success("Plan updated successfully!");
+      setQuickEdit(null);
       resetForm();
       setEditPlan(null);
       setShowAddForm(false);
       refetch();
     },
     onError: (error) => {
-      toast.error("Failed to update plan. Please try again.");
+      toast.error(error.message);
       console.error("Error updating plan:", error);
     },
   });
@@ -240,6 +246,7 @@ const SubscriptionPlansPageContent: React.FC = () => {
       maxJobPostsPerMonth: plan.maxJobPostsPerMonth?.toString() || "",
     });
     setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeletePlan = (plan: Plan) => {
@@ -287,19 +294,31 @@ const SubscriptionPlansPageContent: React.FC = () => {
     <>
       <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 p-5">
         <h2 className="text-xl font-semibold">Company &amp; recruiter job packages</h2>
+        <p className="mt-2 font-medium">Use the Edit price buttons below to update the live website pricing.</p>
         <p className="mt-2">One-time purchases. Credits never expire and have no monthly or yearly posting limits.</p>
         <p className="mt-2 text-sm">Refund window: 30 days from payment. Deduct $99.99 for each job posted, then a 10% administration fee from the remaining balance. See Payment Details for each purchase.</p>
-        <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm">
-          <thead><tr><th className="py-2">Package</th><th>Company price</th><th>Recruiter price</th><th>Job posts</th></tr></thead>
-          <tbody>{Array.from(new Set((plans ?? []).filter(p => p.valid === "credits").map(p => p.title))).map(title => {
-            const company = plans?.find(p => p.title === title && p.for === "company" && p.valid === "credits");
-            const recruiter = plans?.find(p => p.title === title && p.for === "recruiter" && p.valid === "credits");
-            const plan = company ?? recruiter;
-            return <tr key={title} className="border-t border-sky-100"><th className="py-2 font-medium">{title}</th>
-              <td>{company ? `$${company.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Missing"}</td>
-              <td>{recruiter ? `$${recruiter.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Missing"}</td>
-              <td>{plan?.jobPostCredits === null ? "Unlimited" : plan?.jobPostCredits}{company && recruiter && company.jobPostCredits !== recruiter.jobPostCredits ? " (credit mismatch)" : ""}</td></tr>;
-          })}</tbody></table></div>
+        {isLoading ? <p role="status" className="mt-4">Loading prices...</p> : isError ? <p role="alert" className="mt-4 text-red-600">Unable to load prices. <button onClick={() => refetch()} className="underline">Try again</button></p> :
+          <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm">
+            <thead><tr><th className="py-3 pr-4">Package</th><th className="py-3 pr-4">Company price / job posts</th><th className="py-3">Recruiter price / job posts</th></tr></thead>
+            <tbody>{Array.from(new Set((plans ?? []).filter(p => p.valid === "credits" && p.for !== "candidate").map(p => p.title))).map(title => (
+              <tr key={title} className="border-t border-sky-100">
+                <th scope="row" className="py-4 pr-4 font-medium">{title}</th>
+                {(["company", "recruiter"] as const).map(audience => {
+                  const plan = plans?.find(p => p.title === title && p.for === audience && p.valid === "credits");
+                  return <td key={audience} className="py-4 pr-4">{plan ? <div className="flex flex-wrap items-center gap-3">
+                    <div><p className="font-medium">{plan.price.toLocaleString("en-US", { style: "currency", currency: "USD" })}</p>
+                      <p className="mt-1 text-xs text-gray-600">{plan.jobPostCredits === null ? "Unlimited job posts" : `${plan.jobPostCredits} job ${plan.jobPostCredits === 1 ? "post" : "posts"}`}</p></div>
+                    <Button variant="outline" size="sm" className="bg-white" aria-label={`Edit ${audience} ${title}`} onClick={() => setQuickEdit(plan)}>Edit price</Button>
+                  </div> : "Not configured"}</td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table></div>}
+        {quickEdit && <PackagePriceEditor key={quickEdit._id} plan={quickEdit} saving={updateMutation.isPending} onClose={() => setQuickEdit(null)} onSave={(price, jobPostCredits) => updateMutation.mutate({
+          id: quickEdit._id,
+          updatedPlan: { title: quickEdit.title, titleColor: quickEdit.titleColor, description: quickEdit.description, features: quickEdit.features, for: quickEdit.for, valid: "credits", price, jobPostCredits },
+        })} />}
+
       </div>
       <SubscriptionPlansList
         plans={paginatedPlans}
@@ -309,7 +328,9 @@ const SubscriptionPlansPageContent: React.FC = () => {
         onEditPlan={handleEditPlan}
         onDeletePlan={handleDeletePlan}
         onViewDetails={handleViewDetails}
-        currentPage={currentPage}
+        searchTerm={searchTerm}
+        onSearchChange={(value) => { setSearchTerm(value); setCurrentPage(1); }}
+        currentPage={visiblePage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
       />
