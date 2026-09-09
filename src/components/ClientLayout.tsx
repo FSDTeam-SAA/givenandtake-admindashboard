@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   User,
+  Megaphone,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -51,6 +52,7 @@ const menuItems = [
   { title: "Plan", icon: CreditCard, href: "/plan" },
   { title: "Users", icon: User, href: "/users" },
   { title: "Contents", icon: User, href: "/contents" },
+  { title: "Scrolling Bar", icon: Megaphone, href: "/scrolling-bar" },
   { title: "FAQ", icon: User, href: "/faq" },
   { title: "ChatbotQA", icon: User, href: "/chatbot" },
 ];
