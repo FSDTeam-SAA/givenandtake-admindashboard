@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import type React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ interface SubscriptionPlansListProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
 const SkeletonRow = () => (
@@ -52,21 +54,10 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
   currentPage,
   totalPages,
   onPageChange,
+  searchTerm,
+  onSearchChange,
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredPlans = useMemo(() => {
-    if (!plans) return [];
-    const lower = searchTerm.toLowerCase().trim();
-    if (!lower) return plans;
-
-    return plans.filter(
-      (plan) =>
-        plan.title.toLowerCase().includes(lower) ||
-        plan.description.toLowerCase().includes(lower) ||
-        plan.for.toLowerCase().includes(lower)
-    );
-  }, [plans, searchTerm]);
+  const filteredPlans = plans ?? [];
 
   return (
     <Card className="border-none shadow-none">
@@ -84,7 +75,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                 type="text"
                 placeholder='Search plans (e.g. "Premium", "company")...'
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
                 className="pl-10 w-full"
               />
             </div>
@@ -174,6 +165,7 @@ const SubscriptionPlansList: React.FC<SubscriptionPlansListProps> = ({
                       <Button
                         size="sm"
                         variant="ghost"
+                        aria-label={`Edit details for ${plan.for} ${plan.title}`}
                         onClick={() => onEditPlan(plan)}
                         className="hover:bg-gray-100"
                       >
