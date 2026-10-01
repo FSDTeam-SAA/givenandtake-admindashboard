@@ -8,6 +8,7 @@ import { useState, Suspense } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
+import { isValidPassword, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_MESSAGE } from "@/lib/password-policy";
 
 interface ResetPasswordPayload {
   email: string;
@@ -40,7 +41,7 @@ function ResetPasswordForm() {
   >({
     mutationFn: async ({ email, otp, password }) => {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/user/forget`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/user/reset-password`,
         {
           method: "POST",
           headers: {
@@ -74,6 +75,11 @@ function ResetPasswordForm() {
 
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match");
+      return;
+    }
+
+    if (!isValidPassword(newPassword)) {
+      toast.error(PASSWORD_REQUIREMENT_MESSAGE);
       return;
     }
 
@@ -112,7 +118,7 @@ function ResetPasswordForm() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 />
                 <Button
                   type="button"
@@ -148,7 +154,7 @@ function ResetPasswordForm() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 />
                 <Button
                   type="button"
