@@ -1,5 +1,7 @@
 "use client";
 
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+
 import type React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -426,6 +428,7 @@ export default function ClientLayout({
                     Current Password
                   </label>
                   <input
+                    maxLength={PASSWORD_MAX_LENGTH}
                     type={showCurrentPassword ? "text" : "password"}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
@@ -449,6 +452,7 @@ export default function ClientLayout({
                     New Password
                   </label>
                   <input
+                    maxLength={PASSWORD_MAX_LENGTH}
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -472,6 +476,7 @@ export default function ClientLayout({
                     Confirm New Password
                   </label>
                   <input
+                    maxLength={PASSWORD_MAX_LENGTH}
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

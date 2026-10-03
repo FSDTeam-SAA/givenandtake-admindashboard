@@ -1,5 +1,7 @@
 "use client";
 
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -112,6 +114,7 @@ function ResetPasswordForm() {
               <div className="relative">
                 <input
                   id="new-password"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   type={showNewPassword ? "text" : "password"}
                   placeholder="**********"
                   className="w-full h-[52px] rounded-[8px] pl-2 border border-[#9E9E9E] outline-none pr-10"
@@ -148,6 +151,7 @@ function ResetPasswordForm() {
               <div className="relative">
                 <input
                   id="confirm-password"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="**********"
                   className="w-full h-[52px] rounded-[8px] pl-2 border border-[#9E9E9E] outline-none pr-10"

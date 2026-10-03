@@ -1,5 +1,7 @@
 "use client";
 
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+
 import { Suspense, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,6 +113,7 @@ function LoginForm() {
                 <div className="relative">
                   <input
                     id="password"
+                    maxLength={PASSWORD_MAX_LENGTH}
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className="pr-10 border w-full h-[52px] border-[#9E9E9E] outline-none rounded-[8px] pl-2"
