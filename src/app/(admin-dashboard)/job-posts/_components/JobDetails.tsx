@@ -54,6 +54,7 @@ interface Company {
 }
 
 interface JobDetail {
+  displayStatus?: "pending" | "published" | "scheduled" | "denied" | "expired" | "archived";
   _id: string;
   userId: string;
   companyId?: Company;
@@ -107,6 +108,7 @@ type JobDisplayStatus =
   | "Archived";
 
 const getJobDisplayStatus = (job: JobDetail): JobDisplayStatus => {
+  if (job.displayStatus) return (job.displayStatus.charAt(0).toUpperCase() + job.displayStatus.slice(1)) as JobDisplayStatus;
   const now = Date.now();
   if (job.arcrivedJob) return "Archived";
   if (job.deadline && new Date(job.deadline).getTime() < now) return "Expired";

@@ -52,6 +52,7 @@ interface Company {
 }
 
 interface Job {
+  displayStatus?: Exclude<AdminJobView, "all">;
   _id: string;
   title: string;
   jobApprove?: string;
@@ -86,6 +87,7 @@ interface ApiResponse {
 }
 
 const getJobView = (job: Job): Exclude<AdminJobView, "all"> => {
+  if (job.displayStatus) return job.displayStatus;
   const now = Date.now();
   if (job.arcrivedJob) return "archived";
   if (job.deadline && new Date(job.deadline).getTime() < now) return "expired";
