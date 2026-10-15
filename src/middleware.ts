@@ -54,7 +54,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to login if not authenticated
-  if (!token) {
+  if (!token || token.error === 'SessionExpired' ||
+      (token.sessionExpiresAt && Date.now() >= token.sessionExpiresAt)) {
     const loginUrl = new URL('/login', request.url)
     // Add callback URL for redirect after login
     loginUrl.searchParams.set('callbackUrl', pathname)

@@ -49,7 +49,8 @@ export async function middleware(request: NextRequest) {
   if (isPublicRoute) return NextResponse.next()
 
   // Redirect to login if no token
-  if (!token) {
+  if (!token || token.error === 'SessionExpired' ||
+      (token.sessionExpiresAt && Date.now() >= token.sessionExpiresAt)) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('callbackUrl', pathname)
     const response = NextResponse.redirect(loginUrl)
