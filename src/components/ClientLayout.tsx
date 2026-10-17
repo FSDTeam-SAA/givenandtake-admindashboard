@@ -48,6 +48,7 @@ const menuItems = [
   { title: "Elevator Pitch List", icon: FileText, href: "/elevator-pitch" },
   { title: "Set Job Category", icon: Settings, href: "/job-categories" },
   { title: "Add Skills", icon: Settings, href: "/skills" },
+  { title: "Qualifications", icon: Settings, href: "/qualifications" },
   { title: "Job Post List", icon: List, href: "/job-posts" },
   { title: "Payment Details", icon: CreditCard, href: "/payment-details" },
   { title: "Blogs", icon: CreditCard, href: "/blog" },
