@@ -38,7 +38,7 @@ import * as z from "zod"
 
 // Schema for Skill
 const skillSchema = z.object({
-  name: z.string().min(1, "Skill name is required"),
+  name: z.string().min(1, "Skill name is required").max(100, "Skill Name can be at most 100 characters"),
 })
 
 // Interface for Skill
@@ -426,9 +426,9 @@ export default function SkillsPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Skill Name</FormLabel>
+                    <FormLabel>Skill Name (100 characters max)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., JavaScript" {...field} />
+                      <Input placeholder="Skill Name" maxLength={100} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
