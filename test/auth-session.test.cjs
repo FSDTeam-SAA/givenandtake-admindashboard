@@ -38,3 +38,29 @@ test('expired admin sessions require signing in again', async () => {
   assert.equal(token.error, 'SessionExpired');
   assert.equal(token.user.accessToken, '');
 });
+
+test('a fresh login clears old errors and exposes its start time to the idle timer', async () => {
+  const auth = config(() => assert.fail('no refresh is needed'));
+  const before = Date.now();
+  const token = await auth.callbacks.jwt({ token: { error: 'SessionExpired', authenticatedAt: 1 }, user: {
+    _id: 'admin', email: 'admin@example.com', role: 'admin',
+    accessToken: accessToken(Math.floor(Date.now() / 1000) + 900),
+  } });
+  assert.equal(token.error, undefined);
+  assert.ok(token.authenticatedAt >= before);
+  const session = await auth.callbacks.session({ session: {}, token });
+  assert.equal(session.authenticatedAt, token.authenticatedAt);
+  const refreshed = await auth.callbacks.jwt({ token });
+  assert.equal(refreshed.authenticatedAt, token.authenticatedAt);
+});
+
+test('admin credential authorization rejects failed logins and non-staff roles', async () => {
+  for (const data of [
+    { success: false, data: { role: 'super-admin', accessToken: 'token' } },
+    { success: true, data: { role: 'candidate', accessToken: 'token' } },
+    { success: true, data: { role: 'admin' } },
+  ]) {
+    const auth = config(async () => ({ json: async () => data }));
+    assert.equal(await auth.providers[0].authorize({ email: 'test@example.com', password: 'invalid' }), null);
+  }
+});

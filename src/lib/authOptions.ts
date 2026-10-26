@@ -70,6 +70,8 @@ export const authOptions: AuthOptions = {
       if (user) {
         const { refreshToken, sessionExpiresAt, ...publicUser } = user as typeof user & { refreshToken?: string; sessionExpiresAt?: number };
         token.user = publicUser;
+        token.authenticatedAt = Date.now();
+        token.error = undefined;
         token.refreshToken = refreshToken;
         token.sessionExpiresAt = sessionExpiresAt ? sessionExpiresAt * 1000 : Date.now() + 12 * 3600_000;
         token.accessExpiresAt = accessExpiry(publicUser.accessToken);
@@ -83,6 +85,7 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       session.user = token.user;
       session.error = token.error;
+      session.authenticatedAt = token.authenticatedAt;
       return session;
     },
   },

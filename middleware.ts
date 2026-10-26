@@ -2,9 +2,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { activityTimestamp, INACTIVITY_LIMIT_MS, LAST_ACTIVITY_KEY } from './src/lib/admin-session'
 
-const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
-const LAST_ACTIVITY_COOKIE = 'gnt_last_activity'
+const LAST_ACTIVITY_COOKIE = LAST_ACTIVITY_KEY
 
 const withActivityCookie = (request: NextRequest, response: NextResponse) => {
   response.cookies.set(LAST_ACTIVITY_COOKIE, String(Date.now()), {
@@ -52,17 +52,18 @@ export async function middleware(request: NextRequest) {
   if (!token || token.error === 'SessionExpired' ||
       (token.sessionExpiresAt && Date.now() >= token.sessionExpiresAt)) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', pathname)
+    loginUrl.searchParams.set('callbackUrl', pathname + request.nextUrl.search)
     const response = NextResponse.redirect(loginUrl)
     return clearAuthCookies(request, response)
   }
 
   const lastActivity = request.cookies.get(LAST_ACTIVITY_COOKIE)?.value
   if (lastActivity) {
-    const lastActivityMs = Number(lastActivity)
+    const lastActivityMs = activityTimestamp(lastActivity, token.authenticatedAt)
     if (Number.isFinite(lastActivityMs) && Date.now() - lastActivityMs > INACTIVITY_LIMIT_MS) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('reason', 'inactive')
+      loginUrl.searchParams.set('callbackUrl', pathname + request.nextUrl.search)
       const response = NextResponse.redirect(loginUrl)
       return clearAuthCookies(request, response)
     }

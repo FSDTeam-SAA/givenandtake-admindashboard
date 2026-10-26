@@ -1,6 +1,7 @@
 "use client";
 
 import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+import { activityTimestamp, INACTIVITY_LIMIT_MS, LAST_ACTIVITY_KEY } from "@/lib/admin-session";
 
 import type React from "react";
 import Link from "next/link";
@@ -61,8 +62,6 @@ const menuItems = [
   { title: "ChatbotQA", icon: User, href: "/chatbot" },
 ];
 
-const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
-const LAST_ACTIVITY_KEY = "gnt_last_activity";
 
 export default function ClientLayout({
   children,
@@ -95,7 +94,7 @@ export default function ClientLayout({
 
     const logoutForInactivity = async () => {
       try {
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        try { localStorage.removeItem(LAST_ACTIVITY_KEY); } catch { /* Storage may be blocked. */ }
         await signOut({ redirect: false });
       } finally {
         router.replace("/login");
@@ -121,7 +120,7 @@ export default function ClientLayout({
 
     const recordActivity = (timestamp: number) => {
       if (timestamp - lastStorageWriteRef.current > 15000) {
-        localStorage.setItem(LAST_ACTIVITY_KEY, String(timestamp));
+        try { localStorage.setItem(LAST_ACTIVITY_KEY, String(timestamp)); } catch { /* Keep the in-memory timer. */ }
         lastStorageWriteRef.current = timestamp;
       }
       scheduleLogout(timestamp);
@@ -131,21 +130,9 @@ export default function ClientLayout({
       recordActivity(Date.now());
     };
 
-    const stored = localStorage.getItem(LAST_ACTIVITY_KEY);
-    if (stored) {
-      const parsed = Number(stored);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        if (Date.now() - parsed >= INACTIVITY_LIMIT_MS) {
-          void logoutForInactivity();
-          return;
-        }
-        scheduleLogout(parsed);
-      } else {
-        recordActivity(Date.now());
-      }
-    } else {
-      recordActivity(Date.now());
-    }
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(LAST_ACTIVITY_KEY); } catch { /* Keep the in-memory timer. */ }
+    scheduleLogout(activityTimestamp(stored, session.data?.authenticatedAt));
 
     const events = [
       "mousemove",
@@ -168,7 +155,7 @@ export default function ClientLayout({
       if (!Number.isFinite(parsed) || parsed <= 0) {
         return;
       }
-      scheduleLogout(parsed);
+      scheduleLogout(activityTimestamp(event.newValue, session.data?.authenticatedAt));
     };
 
     window.addEventListener("storage", handleStorage);
@@ -180,7 +167,7 @@ export default function ClientLayout({
       });
       window.removeEventListener("storage", handleStorage);
     };
-  }, [router, session.status]);
+  }, [router, session.status, session.data?.authenticatedAt]);
 
   // Fetch user data using TanStack Query
   const { data: userData, isLoading } = useQuery({
@@ -205,7 +192,7 @@ export default function ClientLayout({
 
   const handleLogout = async () => {
     try {
-      localStorage.removeItem(LAST_ACTIVITY_KEY);
+      try { localStorage.removeItem(LAST_ACTIVITY_KEY); } catch { /* Storage may be blocked. */ }
       await signOut({ redirect: false });
       router.push("/login");
     } catch (error) {

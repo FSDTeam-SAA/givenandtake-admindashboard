@@ -1,14 +1,15 @@
 "use client";
 
 import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+import { loginDestination, startLoginActivity } from "@/lib/admin-session";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -17,33 +18,54 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const submitting = useRef(false);
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
+  useEffect(() => {
+    if (status === "authenticated" && !session?.error && session?.user?.accessToken &&
+        (session.user.role === "admin" || session.user.role === "super-admin") && !submitting.current) {
+      startLoginActivity();
+      window.location.replace(loginDestination(callbackUrl, window.location.origin));
+    }
+  }, [status, session, callbackUrl]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setIsLoading(true);
     toast.dismiss();
+    let redirecting = false;
 
     try {
       const result = await signIn("credentials", {
         email,
         password,
+        callbackUrl: loginDestination(callbackUrl, window.location.origin),
         redirect: false,
       });
 
       if (result?.error) {
         handleLoginError(result.error);
       } else if (result?.ok) {
+        startLoginActivity();
         toast.success("Login successful! Redirecting...");
-        router.push(callbackUrl);
+        // Reload with the new session cookie instead of reusing cached guest pages.
+        window.location.replace(loginDestination(callbackUrl, window.location.origin));
+        redirecting = true;
+      } else {
+        toast.error("Login failed. Please try again.");
       }
     } catch (error) {
       toast.error("An unexpected error occurred. Please try again.");
       console.error("Login error:", error);
     } finally {
-      setIsLoading(false);
+      if (!redirecting) {
+        submitting.current = false;
+        setIsLoading(false);
+      }
     }
   };
 
