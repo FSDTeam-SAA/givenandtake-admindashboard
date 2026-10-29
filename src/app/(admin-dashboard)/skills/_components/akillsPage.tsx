@@ -1,479 +1,152 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useSession } from "next-auth/react"
-import { useQuery, useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { Plus, Search, Settings, ChevronLeft, ChevronRight } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+import { FormEvent, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { skillReviewBody, type SkillReviewAction, type SkillReviewStatus } from "@/lib/skill-management";
 
-// Schema for Skill
 const skillSchema = z.object({
-  name: z.string().min(1, "Skill name is required").max(100, "Skill Name can be at most 100 characters"),
-})
+  name: z.string().trim().min(1, "Skill name is required").max(100, "Skill name can be at most 100 characters"),
+});
+type Skill = { _id: string; name: string; active?: boolean; createdAt?: string };
+type Submission = { key: string; name: string; count: number; status: SkillReviewStatus; skillId?: string };
+const PAGE_SIZE = 25;
 
-// Interface for Skill
-interface Skill {
-  _id: string
-  name: string
-  categoryIcon: string
-  createdAt: string
-  updatedAt: string
-  __v: number
+function Pager({ page, count, onChange }: { page: number; count: number; onChange: (page: number) => void }) {
+  const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  return <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+    <p>{count} {count === 1 ? "entry" : "entries"} · Page {page} of {pages}</p>
+    <div className="flex gap-2"><Button variant="outline" disabled={page <= 1} onClick={() => onChange(page - 1)}>Previous</Button><Button variant="outline" disabled={page >= pages} onClick={() => onChange(page + 1)}>Next</Button></div>
+  </div>;
 }
 
-// Interface for API Response
-interface ApiResponse {
-  success: boolean
-  message: string
-  data: Skill[]
-}
+export default function AkillsPage() {
+  const { data: session, status: authStatus } = useSession();
+  const token = session?.user?.accessToken;
+  const client = useQueryClient();
+  const [tab, setTab] = useState<"catalog" | "review">("catalog");
+  const [status, setStatus] = useState<SkillReviewStatus>("pending");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<Skill | null>(null);
+  const [name, setName] = useState("");
+  const [active, setActive] = useState(true);
+  const [formError, setFormError] = useState("");
+  const [reviewing, setReviewing] = useState<Submission | null>(null);
+  const [reviewMode, setReviewMode] = useState<"new" | "existing">("new");
+  const [reviewName, setReviewName] = useState("");
+  const [targetId, setTargetId] = useState("");
+  const base = `${process.env.NEXT_PUBLIC_BASE_URL}/skill`;
 
-// Skeleton Row
-const SkeletonRow = () => (
-  <TableRow>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-    </TableCell>
-    <TableCell>
-      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-    </TableCell>
-  </TableRow>
-)
-
-// Skills Table Component with Refined Design
-interface SkillsTableProps {
-  skills: Skill[]
-  isLoading: boolean
-  isError: boolean
-  onEdit: (skill: Skill) => void
-  onDelete: (id: string) => void
-}
-
-const SkillsTable = ({ skills, isLoading, isError, onEdit, onDelete }: SkillsTableProps) => (
-  <div className="">
-    <Table className="min-w-full">
-      <TableHeader className="bg-[#DFFAFF]">
-        <TableRow>
-          <TableHead className="px-6 py-3 text-left text-base font-semibold text-[#595959] uppercase border-b border-[#BFBFBF]">
-            Skill Name
-          </TableHead>
-          <TableHead className="px-6 py-3 text-left text-base font-semibold text-[#595959] uppercase border-b border-[#BFBFBF]">
-            Added Date
-          </TableHead>
-          <TableHead className="px-6 py-3 text-left text-base font-semibold text-[#595959] uppercase border-b border-[#BFBFBF]">
-            Actions
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody className="divide-y divide-[#BFBFBF]">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, index) => <SkeletonRow key={`skeleton-${index}`} />)
-        ) : isError ? (
-          <TableRow>
-            <TableCell colSpan={3} className="px-6 py-4 text-center text-red-500">
-              Error loading skills. Please try again later.
-            </TableCell>
-          </TableRow>
-        ) : skills.length > 0 ? (
-          skills.map((skill) => (
-            <TableRow
-              key={skill._id}
-              className="hover:bg-gray-50 transition-colors duration-200"
-            >
-              <TableCell className="px-6 py-4 text-base font-normal text-[#595959]">
-                {skill.name}
-              </TableCell>
-              <TableCell className="px-6 py-4 text-base font-normal text-[#595959]">
-                {skill.createdAt
-                  ? new Date(skill.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })
-                  : "Invalid Date"}
-              </TableCell>
-              <TableCell className="px-6 py-4">
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onEdit(skill)}
-                    className="hover:bg-[#44B6CA] hover:text-white text-[#737373]"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onDelete(skill._id)}
-                    className="hover:bg-red-500 hover:text-white text-red-600"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={3} className="px-6 py-4 text-center text-[#595959]">
-              No skills found
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
-  </div>
-)
-
-export default function SkillsPage() {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [skillToDelete, setSkillToDelete] = useState<string | null>(null)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [isCrudModalOpen, setIsCrudModalOpen] = useState(false)
-  const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
-  const { data: session, status } = useSession()
-  const token = session?.user?.accessToken
-  const itemsPerPage = 10
-
-  // Form setup
-  const form = useForm<z.infer<typeof skillSchema>>({
-    resolver: zodResolver(skillSchema),
-    defaultValues: { name: "" },
-  })
-
-  // Fetch skills
-  const { data, isLoading, isError, refetch } = useQuery<ApiResponse>({
-    queryKey: ["skills", searchTerm],
-    queryFn: async () => {
-      if (!token) throw new Error("No authentication token available")
-      const params = new URLSearchParams({
-        ...(searchTerm && { search: searchTerm }),
-      })
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/skill?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to fetch skills")
-      }
-      const data = await response.json()
-      return data as ApiResponse
+  async function request<T>(suffix: string, method = "GET", body?: unknown): Promise<T> {
+    if (!token) throw new Error("Please sign in to manage skills.");
+    const response = await fetch(`${base}${suffix}`, {
+      method, cache: "no-store",
+      headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) throw new Error(payload.message || "Unable to complete the request. Please try again.");
+    return payload.data;
+  }
+  const catalog = useQuery<Skill[]>({ queryKey: ["skills", "manage"], enabled: Boolean(token), queryFn: () => request("/manage") });
+  const submissions = useQuery<Submission[]>({ queryKey: ["skills", "submissions", status], enabled: Boolean(token) && tab === "review", queryFn: () => request(`/submissions?status=${status}`) });
+  const reset = () => { setEditing(null); setName(""); setActive(true); setFormError(""); };
+  const refresh = async () => { setPage(1); await client.invalidateQueries({ queryKey: ["skills"] }); };
+  const save = useMutation({
+    mutationFn: () => {
+      const values = skillSchema.parse({ name });
+      return request(editing ? `/${editing._id}` : "", editing ? "PUT" : "POST", { name: values.name, active });
     },
-    enabled: status === "authenticated",
-  })
+    onSuccess: async () => { await refresh(); reset(); toast.success("Skill saved"); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const toggle = useMutation({
+    mutationFn: (item: Skill) => request(`/${item._id}`, "PUT", { active: item.active === false }),
+    onSuccess: async () => { await refresh(); toast.success("Skill availability updated"); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const review = useMutation({
+    mutationFn: (action: SkillReviewAction) => request("/submissions/review", "POST", skillReviewBody({
+      key: reviewing?.key || "", action, mode: reviewMode, name: reviewName, skillId: targetId,
+    })),
+    onSuccess: async () => { await refresh(); setReviewing(null); toast.success("Review saved. Candidate profiles are unchanged."); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const startReview = (item: Submission) => { setReviewing(item); setReviewName(item.name); setReviewMode("new"); setTargetId(item.skillId || ""); };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const result = skillSchema.safeParse({ name });
+    if (!result.success) { setFormError(result.error.issues[0]?.message || "Enter a valid skill name."); return; }
+    setFormError(""); if (token) save.mutate();
+  };
+  const searchRows = <T extends { name: string }>(items: T[]) => items.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const catalogRows = searchRows(catalog.data || []);
+  const reviewRows = searchRows(submissions.data || []);
+  const total = tab === "catalog" ? catalogRows.length : reviewRows.length;
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const slice = <T,>(items: T[]) => items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const busy = save.isPending || toggle.isPending || review.isPending;
+  const searchInput = <Input aria-label={tab === "catalog" ? "Search skills" : "Search submissions"} placeholder="Search by skill name" maxLength={100} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} className="mb-4" />;
 
-  // Filter and paginate skills client-side
-  const skills = data?.data || []
-  const filteredSkills = skills.filter((skill) =>
-    skill.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-  const totalPages = Math.ceil(filteredSkills.length / itemsPerPage) || 1
-  const paginatedSkills = filteredSkills.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  if (authStatus === "loading") return <p role="status" className="p-6">Loading skills…</p>;
+  if (!token) return <p className="p-6">Please sign in to manage skills.</p>;
 
-  // Add/Update mutation (sending JSON)
-  const crudMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof skillSchema>) => {
-      if (!token) throw new Error("No authentication token available")
-      const url = editingSkill
-        ? `${process.env.NEXT_PUBLIC_BASE_URL}/skill/${editingSkill._id}`
-        : `${process.env.NEXT_PUBLIC_BASE_URL}/skill`
-      const method = editingSkill ? "PUT" : "POST"
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: values.name, categoryIcon: "" }),
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Failed to ${editingSkill ? "update" : "add"} skill`)
-      }
-      return response.json()
-    },
-    onSuccess: () => {
-      toast.success(`${editingSkill ? "Skill updated" : "Skill added"} successfully!`)
-      setIsCrudModalOpen(false)
-      setEditingSkill(null)
-      form.reset()
-      setCurrentPage(1)
-      setSearchTerm("")
-      refetch()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || `Failed to ${editingSkill ? "update" : "add"} skill`)
-    },
-  })
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!token) throw new Error("No authentication token available")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/skill/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to delete skill")
-      }
-      return response.json()
-    },
-    onSuccess: () => {
-      toast.success("Skill deleted successfully!")
-      setIsDeleteModalOpen(false)
-      setSkillToDelete(null)
-      setCurrentPage(1)
-      setSearchTerm("")
-      refetch()
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete skill")
-    },
-  })
-
-  const openAddModal = () => {
-    setEditingSkill(null)
-    form.reset({ name: "" })
-    setIsCrudModalOpen(true)
-  }
-
-  const openEditModal = (skill: Skill) => {
-    setEditingSkill(skill)
-    form.setValue("name", skill.name)
-    setIsCrudModalOpen(true)
-  }
-
-  const handleDeleteConfirm = (id: string) => {
-    setSkillToDelete(id)
-    setIsDeleteModalOpen(true)
-  }
-
-  // Manual pagination controls
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
-    }
-  }
-
-  const getVisiblePages = () => {
-    const delta = 2
-    const range = []
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
-      range.push(i)
-    }
-    if (currentPage - delta > 2) range.unshift("...")
-    if (currentPage + delta < totalPages - 1) range.push("...")
-    if (!range.includes(1)) range.unshift(1)
-    if (!range.includes(totalPages)) range.push(totalPages)
-    return range
-  }
-
-  const visiblePages = getVisiblePages()
-
-  if (status === "loading") {
-    return <div className="text-center text-[#595959]">Loading session...</div>
-  }
-
-  if (!session) {
-    return <div className="text-center text-[#595959]">Please sign in to view skills.</div>
-  }
-
-  if (isError) {
-    return <div className="text-center text-red-500">Error loading skills. Please try again later.</div>
-  }
-
-  return (
-    <>
-      <Card className="border-none shadow-none">
-        <CardHeader className="bg-[#DFFAFF] rounded-[8px]">
-          <CardTitle className="flex items-center justify-between py-[25px]">
-            <div className="flex items-center gap-2 text-[40px] font-bold text-[#44B6CA]">
-              <Settings className="h-[32px] w-[32px]" />
-              Skills List
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#595959]" />
-                <Input
-                  type="text"
-                  placeholder="Search skills..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="pl-10 pr-4 py-2 w-[250px] border-[#BFBFBF] focus:ring-[#44B6CA]"
-                />
-              </div>
-              <Button
-                onClick={openAddModal}
-                className="bg-[#44B6CA] hover:bg-[#44B6CA]/85 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Skill
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <SkillsTable
-            skills={paginatedSkills}
-            isLoading={isLoading}
-            isError={isError}
-            onEdit={openEditModal}
-            onDelete={handleDeleteConfirm}
-          />
-          {filteredSkills.length > itemsPerPage && (
-            <div className="mt-4 flex justify-center items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="border-[#BFBFBF] hover:bg-[#44B6CA] hover:text-white disabled:opacity-50"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              {visiblePages.map((page, index) => (
-                <Button
-                  key={index}
-                  variant={page === currentPage ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => typeof page === "number" && handlePageChange(page)}
-                  disabled={page === "..."}
-                  className={`border-[#BFBFBF] min-w-[44px] ${
-                    page === currentPage
-                      ? "bg-[#44B6CA] text-white"
-                      : "hover:bg-[#44B6CA] hover:text-white"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  aria-label={typeof page === "number" ? `Go to page ${page}` : undefined}
-                >
-                  {page}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="border-[#BFBFBF] hover:bg-[#44B6CA] hover:text-white disabled:opacity-50"
-                aria-label="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* CRUD Modal (Add/Update) */}
-      <Dialog open={isCrudModalOpen} onOpenChange={setIsCrudModalOpen}>
-        <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none">
-          <DialogHeader>
-            <DialogTitle>{editingSkill ? "Edit Skill" : "Add Skill"}</DialogTitle>
-            <DialogDescription>
-              {editingSkill ? "Update the skill details below." : "Enter the new skill details."}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) => crudMutation.mutate(values))}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Skill Name (100 characters max)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Skill Name" maxLength={100} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={crudMutation.isPending}>
-                  {crudMutation.isPending ? "Saving..." : editingSkill ? "Update" : "Add"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="bg-[#DFFAFF] rounded-[8px] border-none">
-          <DialogHeader>
-            <DialogTitle>Confirm Delete</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &quot;
-              {skillToDelete && skills.find((s) => s._id === skillToDelete)?.name}&quot;? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteModalOpen(false)}
-              disabled={deleteMutation.isPending}
-            >
-              No
-            </Button>
-            <Button
-              variant="destructive"
-              className="bg-red-600 hover:bg-red-900 text-white"
-              onClick={() => skillToDelete && deleteMutation.mutate(skillToDelete)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Yes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
+  return <div className="min-w-0 space-y-6 p-4 sm:p-6">
+    <div><h1 className="text-2xl font-semibold">Skills</h1><p className="mt-2 text-sm text-gray-600">Manage skill suggestions and review names saved by candidates.</p></div>
+    <div role="tablist" aria-label="Skill management" className="flex flex-wrap gap-2 border-b pb-3">
+      <Button role="tab" aria-selected={tab === "catalog"} variant={tab === "catalog" ? "default" : "outline"} disabled={busy} onClick={() => { setTab("catalog"); setSearch(""); setPage(1); setReviewing(null); }}>Catalog</Button>
+      <Button role="tab" aria-selected={tab === "review"} variant={tab === "review" ? "default" : "outline"} disabled={busy} onClick={() => { setTab("review"); setSearch(""); setPage(1); }}>Review submissions</Button>
+    </div>
+    {tab === "catalog" ? <>
+      <Card><CardHeader><CardTitle>{editing ? "Edit skill" : "Add skill"}</CardTitle></CardHeader><CardContent>
+        <form onSubmit={submit} className="space-y-4">
+          <div><label htmlFor="skill-name">Skill name *</label><Input id="skill-name" required maxLength={100} value={name} onChange={event => { setName(event.target.value); setFormError(""); }} disabled={busy} /></div>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={active} onChange={event => setActive(event.target.checked)} disabled={busy} />Available in suggestions</label>
+          {formError && <p role="alert" className="text-sm text-red-600">{formError}</p>}
+          <div className="flex gap-2"><Button type="submit" disabled={busy || !name.trim()}>{save.isPending ? "Saving…" : "Save skill"}</Button>{editing && <Button type="button" variant="outline" onClick={reset} disabled={busy}>Cancel</Button>}</div>
+        </form>
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle>Skill catalog</CardTitle></CardHeader><CardContent>
+        {searchInput}
+        <p className="mb-4 text-sm text-gray-600">Deactivation hides equivalent suggestions, including duplicate catalog names. Saved candidate skills stay unchanged.</p>
+        {catalog.isLoading && <p role="status">Loading catalog…</p>}
+        {catalog.isError && <div role="alert"><p>{catalog.error.message}</p><Button variant="outline" onClick={() => catalog.refetch()}>Try again</Button></div>}
+        {!catalog.isLoading && !catalog.isError && <><div className="overflow-x-auto"><table className="w-full min-w-[32rem] text-left"><thead><tr className="border-b"><th scope="col" className="min-w-[12rem] whitespace-nowrap p-3">Skill</th><th scope="col" className="whitespace-nowrap p-3">Status</th><th scope="col" className="whitespace-nowrap p-3">Actions</th></tr></thead><tbody>
+          {slice(catalogRows).map(item => <tr key={item._id} data-skill-id={item._id} className="border-b"><td className="min-w-[12rem] max-w-[20rem] p-3 [overflow-wrap:anywhere]">{item.name}</td><td className="p-3">{item.active === false ? "Inactive" : "Active"}</td><td className="p-3"><div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={busy} onClick={() => { setEditing(item); setName(item.name); setActive(item.active !== false); setFormError(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Edit</Button>
+            <Button variant="outline" disabled={busy} onClick={() => toggle.mutate(item)}>{item.active === false ? "Activate" : "Deactivate"}</Button>
+          </div></td></tr>)}
+          {!catalogRows.length && <tr><td colSpan={3} className="p-3">No skills found.</td></tr>}
+        </tbody></table></div><Pager page={currentPage} count={catalogRows.length} onChange={setPage} /></>}
+      </CardContent></Card>
+    </> : <>
+      <p className="text-sm text-gray-600">Custom skills from existing and newly saved profiles appear here when missing from the catalog. Review decisions control suggestions and never replace or remove a candidate’s saved skill.</p>
+      <div className="flex flex-wrap items-center gap-3"><label htmlFor="skill-review-status">Review status</label><select id="skill-review-status" value={status} disabled={busy} onChange={event => { setStatus(event.target.value as SkillReviewStatus); setPage(1); setReviewing(null); }} className="rounded border p-2"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><Button variant="outline" onClick={() => submissions.refetch()} disabled={submissions.isFetching || busy}>Refresh</Button></div>
+      {reviewing && <Card><CardHeader><CardTitle className="[overflow-wrap:anywhere]">Review: {reviewing.name}</CardTitle></CardHeader><CardContent>
+        <form className="space-y-4" onSubmit={event => { event.preventDefault(); review.mutate("approve"); }}>
+          <div><label htmlFor="skill-review-mode">Approval method</label><select id="skill-review-mode" value={reviewMode} disabled={busy} onChange={event => setReviewMode(event.target.value as "new" | "existing")} className="block w-full rounded border p-2"><option value="new">Add to catalog</option><option value="existing">Link to existing skill</option></select></div>
+          {reviewMode === "new" ? <div><label htmlFor="skill-review-name">Skill name *</label><Input id="skill-review-name" maxLength={100} required value={reviewName} disabled={busy} onChange={event => setReviewName(event.target.value)} /></div> : <div>
+            <label htmlFor="skill-review-target">Catalog skill *</label><select id="skill-review-target" required value={targetId} onChange={event => setTargetId(event.target.value)} disabled={busy || catalog.isLoading || catalog.isError} className="block w-full max-w-full rounded border p-2"><option value="">Select skill</option>{catalog.data?.map(item => <option key={item._id} value={item._id}>{item.name} ({item._id.slice(-6)}){item.active === false ? " — will activate" : ""}</option>)}</select>
+            {catalog.isError && <p role="alert">Catalog could not load. <button type="button" onClick={() => catalog.refetch()} className="underline">Try again</button></p>}
+          </div>}
+          <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || (reviewMode === "existing" ? !targetId : !reviewName.trim())}>Approve</Button><Button type="button" variant="outline" disabled={busy} onClick={() => review.mutate("reject")}>Reject</Button>{reviewing.status !== "pending" && <Button type="button" variant="outline" disabled={busy} onClick={() => review.mutate("reopen")}>Reopen</Button>}<Button type="button" variant="outline" disabled={busy} onClick={() => setReviewing(null)}>Cancel</Button></div>
+        </form>
+      </CardContent></Card>}
+      <Card><CardHeader><CardTitle>Skill submissions</CardTitle></CardHeader><CardContent>
+        {searchInput}
+        {submissions.isLoading && <p role="status">Loading submissions…</p>}
+        {submissions.isError && <div role="alert"><p>{submissions.error.message}</p><Button variant="outline" onClick={() => submissions.refetch()}>Try again</Button></div>}
+        {!submissions.isLoading && !submissions.isError && <><div className="overflow-x-auto"><table className="w-full min-w-[28rem] text-left"><thead><tr className="border-b"><th scope="col" className="min-w-[12rem] whitespace-nowrap p-3">Skill</th><th scope="col" className="p-3 whitespace-nowrap">Profiles</th><th scope="col" className="p-3 whitespace-nowrap">Actions</th></tr></thead><tbody>
+          {slice(reviewRows).map(item => <tr key={item.key} className="border-b"><td className="min-w-[12rem] max-w-[20rem] p-3 [overflow-wrap:anywhere]">{item.name}</td><td className="p-3">{item.count}</td><td className="p-3"><Button variant="outline" disabled={busy} onClick={() => startReview(item)}>{status === "pending" ? "Review" : "Review again"}</Button></td></tr>)}
+          {!reviewRows.length && <tr><td colSpan={3} className="p-3">No {status} submissions found.</td></tr>}
+        </tbody></table></div><Pager page={currentPage} count={reviewRows.length} onChange={setPage} /></>}
+      </CardContent></Card>
+    </>}
+  </div>;
 }
