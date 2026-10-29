@@ -26,3 +26,20 @@ validation and query retention, an expired session, repeated submissions, blocke
 browser storage, guest access restrictions, and the login layout at 320px/390px.
 
 Run the session/middleware unit regressions with `npm test`.
+
+## Skill catalog and review checks
+
+After `npm run build`, run `node test/browser/skill-management-browser.cjs`.
+Set `PLAYWRIGHT_MODULE` and `ESBUILD_MODULE` to workstation module paths when
+Playwright/esbuild are installed in external test tooling directories. The runner
+bundles the real Skills component with actual React Query hooks and built admin CSS,
+mocking only the session/toast providers. It starts and stops its own localhost:3032
+API fixture. No production accounts, writes, or dependencies are used.
+
+The fixture covers catalog pagination, retained duplicate IDs, name limits,
+create/edit/deactivation, new approval, link/reactivation, rejection/reopening,
+authenticated request shapes, catalog failure/retry, guest gating, and the review
+form at 320/390/768/1280 pixels. This is component/API-contract verification, not
+an integrated backend or real-login test. Existing login fixtures cover authentication
+separately. Screenshots, request records, and summaries go to `../artifacts` by default;
+`SKILL_ADMIN_ARTIFACTS` overrides that directory.
