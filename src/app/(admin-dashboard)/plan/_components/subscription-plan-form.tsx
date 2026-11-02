@@ -181,7 +181,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
             <label className="block text-sm font-medium mb-2">Duration</label>
             <Select value={formData.valid} onValueChange={(value) => onSelectChange("valid", value)}>
               <SelectTrigger><SelectValue placeholder="Duration" /></SelectTrigger>
-              <SelectContent><SelectItem value="PayAsYouGo">PayAsYouGo</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="yearly">Yearly</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="PayAsYouGo">Pay As You Go</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="yearly">Yearly</SelectItem></SelectContent>
             </Select>
           </div> : <div className="rounded-lg bg-sky-50 p-4">
             <label htmlFor="jobPostCredits" className="block text-sm font-medium mb-2">Job post credits</label>

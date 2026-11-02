@@ -90,7 +90,7 @@ function VerifyEmailContent() {
           </div>
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           <div className="flex justify-between text-sm">
-            <span className="text-[#737373]">Don&apos;t receive OTP?</span>
+            <span className="text-[#737373]">Didn&apos;t receive the OTP?</span>
             <Link href="#" className="text-[#44B6CA] hover:underline">
               Resend code
             </Link>
