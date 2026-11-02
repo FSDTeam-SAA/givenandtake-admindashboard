@@ -242,7 +242,7 @@ export default function ElevatorPitchPage() {
               <table className="w-full">
                 <thead>
                   <tr>
-                    {["Name", "Mail", "Added date", "Plan", "Details"].map(
+                    {["Name", "Email", "Added Date", "Role", "Details"].map(
                       (head) => (
                         <th
                           key={head}
@@ -272,7 +272,7 @@ export default function ElevatorPitchPage() {
               <table className="w-full">
                 <thead>
                   <tr>
-                    {["Name", "Mail", "Added date", "Plan", "Details"].map(
+                    {["Name", "Email", "Added Date", "Role", "Details"].map(
                       (head) => (
                         <th
                           key={head}
