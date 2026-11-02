@@ -95,7 +95,7 @@ const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({ planId, isOpen, onC
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Valid For</label>
-              <p className="text-[#595959] capitalize">{plan.valid === "credits" ? "Never expires" : plan.valid}</p>
+              <p className="text-[#595959] capitalize">{plan.for}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#595959] mb-1">Created At</label>

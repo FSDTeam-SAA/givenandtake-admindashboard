@@ -370,7 +370,7 @@ export default function ClientLayout({
                 </button>
               </div>
               <p className="mb-6 text-gray-600">
-                Are you sure you want to logout? You&apos;ll need to sign in
+                Are you sure you want to log out? You&apos;ll need to sign in
                 again to access your account.
               </p>
               <div className="flex justify-end gap-3">

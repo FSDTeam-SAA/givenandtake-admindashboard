@@ -121,12 +121,12 @@ export default function AddBlogForm({
     }
 
     if (!authorName.trim()) {
-      toast.error("Please enter author name"); // 🔹 NEW validation
+      toast.error("Please enter an author name"); // 🔹 NEW validation
       return;
     }
 
     if (!content || content === "<p><br></p>") {
-      toast.error("Please enter blog content");
+      toast.error("Please enter the blog content");
       return;
     }
 

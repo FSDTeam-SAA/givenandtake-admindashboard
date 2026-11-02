@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
           </h2>
           <p className="text-base text-[#999999] font-normal">
             Forgot your password? Please enter your email and we&apos;ll send
-            you a 4-digit code.
+            you a 6-digit code.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4">
