@@ -26,6 +26,8 @@ interface Payment {
   transactionId: string
   userId: User
   amount: number
+  /** Website payments may be GBP/EUR/CAD/AUD; older rows omit it (USD). */
+  currency?: string
   createdAt: string
   paymentStatus: "pending" | "completed" | "failed" | "refunded" | "complete"
   duration?: string
@@ -64,6 +66,16 @@ const fetchPayments = async (page: number): Promise<ApiResponse> => {
   return response.json()
 }
 
+// en-US renders $6.99, £6.99, €7.99, CA$9.99, A$9.99.
+const money = (amount: number, currency?: string): string => {
+  const code = (currency || "USD").toUpperCase()
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(amount)
+  } catch {
+    return `${amount.toFixed(2)} ${code}`
+  }
+}
+
 // ----- Receipt Download -----
 const downloadReceipt = (payment: Payment): void => {
   const doc = new jsPDF()
@@ -73,7 +85,8 @@ const downloadReceipt = (payment: Payment): void => {
   doc.text(`Transaction ID: ${payment.transactionId}`, 20, 40)
   doc.text(`Customer Name: ${payment.userId.name}`, 20, 50)
   doc.text(`Email: ${payment.userId.email}`, 20, 60)
-  doc.text(`Amount: $${payment.amount}`, 20, 70)
+  // jsPDF's default font has no £/€ glyphs, so the receipt uses the ISO code.
+  doc.text(`Amount: ${payment.amount.toFixed(2)} ${(payment.currency || "USD").toUpperCase()}`, 20, 70)
   doc.text(`Date: ${format(new Date(payment.createdAt), "yyyy-MM-dd")}`, 20, 80)
   doc.text(`Status: ${payment.paymentStatus}`, 20, 90)
   doc.text(`Method: ${payment.paymentMethod}`, 20, 100)
@@ -202,7 +215,7 @@ export default function PaymentDetailsPage() {
                     {payment.userId?.email}
                   </td>
                   <td className="px-6 py-4 text-sm text-[#000000]">
-                    ${payment.amount.toFixed(2)}
+                    {money(payment.amount, payment.currency)}
                   </td>
                   <td className="px-6 py-4 text-sm text-[#000000]">
                     {format(new Date(payment.createdAt), "yyyy-MM-dd")}
@@ -231,9 +244,9 @@ export default function PaymentDetailsPage() {
                   </td>
                   <td className="px-6 py-4 text-sm min-w-56">
                     {payment.refundProcessing ? <p>Processing / awaiting reconciliation</p> : payment.paymentStatus === "refunded" ? <>
-                      <p>Refunded: ${Math.max(payment.amount - (payment.refundDeductions ?? 0) - (payment.refundAdminFee ?? 0), 0).toFixed(2)}</p>
-                      <p>Job deductions: ${(payment.refundDeductions ?? 0).toFixed(2)}</p>
-                      <p>Admin fee: ${(payment.refundAdminFee ?? 0).toFixed(2)}</p>
+                      <p>Refunded: {money(Math.max(payment.amount - (payment.refundDeductions ?? 0) - (payment.refundAdminFee ?? 0), 0), payment.currency)}</p>
+                      <p>Job deductions: {money(payment.refundDeductions ?? 0, payment.currency)}</p>
+                      <p>Admin fee: {money(payment.refundAdminFee ?? 0, payment.currency)}</p>
                     </> : payment.refundQuote ? <>
                       <p className="font-medium">{payment.refundQuote.eligible ? "Eligible" : "Not eligible"}</p>
                       <p>Deadline: {format(new Date(payment.refundQuote.deadline), "dd MMM yyyy HH:mm")}</p>
